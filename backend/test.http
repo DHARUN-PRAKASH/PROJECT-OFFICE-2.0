@@ -1,0 +1,81 @@
+### SIGNIN
+POST  http://localhost:1111/signin
+Content-Type: application/json
+
+{
+    "username":"dpz",
+    "password":"3333",
+}
+
+### POST FORM
+POST  http://localhost:1111/postform
+Content-Type: application/json
+
+{
+    "fy_year": 2005,
+    "month": "apr",
+    "head_cat": "1",
+    "sub_cat": "2",
+    "date": "2005",
+    "received_by":"dwdw",
+    "particulars": "vsv",
+    "bill_no": "sasv",
+    "amount": "avvavd",
+    "departments":"avava",
+    "vehicles":"avavva"
+}
+
+### GET FORM
+GET http://localhost:1111/getforms
+
+### GET HEAD CAT
+GET http://localhost:1111/gethead_cat
+
+### GET SUB CAT
+GET http://localhost:1111/getsub_cat
+
+### GET MONTH
+GET http://localhost:1111/getmonth
+
+### GET DEPARTMENT
+GET http://localhost:1111/getdepartment
+
+### GET EMPLOYEE
+GET http://localhost:1111/getemployee
+
+### GET VEHICLE
+GET http://localhost:1111/getvehicle
+
+### GET FY YEAR
+GET http://localhost:1111/getfy_year
+
+### GET FORM BY AMOUNT
+GET http://localhost:1111/amount/11
+
+### GET FORM BY PARTICULARS
+GET http://localhost:1111/particulars/QEF
+
+### GET FORM BY FY YEAR
+GET http://localhost:1111/fy_year/2025
+
+### GET FORM BY MONTH
+GET http://localhost:1111/month/April
+
+### GET FORM BY DATE
+GET http://localhost:1111/date/2024-08-01
+
+### GET FORM BY HEAD CAT NAME
+GET http://localhost:1111/getFormByHeadCatName/Hiring Charges
+
+### GET FORM BY SUB CAT NAME
+GET http://localhost:1111/getFormBySubCatName/Bus Maintenance
+
+### GET FORM BY VEHICLE ID
+GET http://localhost:1111/getFormByVehicleID/1
+
+### GET FORM BY EMPLOYEE ID
+GET http://localhost:1111/getFormByEmployeeID/1
+
+
+
+
