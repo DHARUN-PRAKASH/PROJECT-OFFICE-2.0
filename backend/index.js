@@ -17,24 +17,25 @@ app.use(express.static('public'));
 
 
 // Signin process
-app.post('/signin', async (req, res) => {
-    try {
-        const user = req.body.username;
-        const pass = req.body.password;
-        const preuser = await signin.findOne({ '$and': [{ "username": { '$eq': user } }, { "password": { '$eq': pass } }] });
-        if (preuser) {
-            const cred = {
-                "username": user,
-                "password": pass
-            };
-            res.json(cred);
-        } else {
-            res.json({ "message": "error" });
-        }
-    } catch (err) {
-        res.status(500).json({ "error": err });
+app.post('/signin',async(req,res)=>{
+    try{
+      const user = req.body.username
+     const pass = req.body.password
+     const preuser = await signin.findOne({'$and':[{"username":{'$eq':user}},{"password":{'$eq':pass}}]})
+     if(preuser){
+         const cred = {
+             "username":user,
+             "password":pass
+         }
+         res.json(cred)
+     }
+     else{
+         response.json({"message":"error"})
+     }
+    }catch(err){
+     res.status(500).json({"error":err})
     }
-});
+ })
 
 // Post form with file upload and PDF merging
 // Ensure directories exist
@@ -49,20 +50,22 @@ ensureDir(path.join(__dirname, 'public', 'pdf'));
 ensureDir(path.join(__dirname, 'public', 'merged_pdfs'));
 
 // Multer storage configuration
+
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, path.join(__dirname, 'public', 'pdf'));
+        cb(null, path.join(__dirname, 'public', 'pdf')); // Save to the 'public/pdf' directory
     },
     filename: (req, file, cb) => {
-        const ext = path.extname(file.originalname);
-        const bill_no = req.body.bill_no || 'unknown';
-        const date = req.body.date || new Date().toISOString().split('T')[0];
-        const randomNumber = Math.floor(Math.random() * 1000);
-        cb(null, `${bill_no}_${date}_${randomNumber}${ext}`);
+        const safeFilename = file.originalname.trim(); // Ensure no leading/trailing spaces
+        // console.log('Saving file with original name:', safeFilename);
+        cb(null, safeFilename); // Save with the original name
     }
 });
 
 const upload = multer({ storage: storage });
+
+
+
 
 // Function to merge PDF files
 // Utility function to add an image as a page in the PDF
@@ -105,7 +108,7 @@ const mergeFilesToPdf = async (files, outputPath) => {
 
         for (const file of files) {
             const filePath = path.join(__dirname, 'public', 'pdf', file.filename);
-            console.log(`Processing file: ${filePath}`);
+            // console.log(`Processing file: ${filePath}`);
             if (!fs.existsSync(filePath)) {
                 console.error(`File not found: ${filePath}`);
                 throw new Error(`File not found: ${filePath}`);
@@ -128,7 +131,7 @@ const mergeFilesToPdf = async (files, outputPath) => {
 
         const pdfBytes = await pdfDoc.save();
         fs.writeFileSync(outputPath, pdfBytes);
-        console.log(`PDF saved to: ${outputPath}`);
+        // console.log(`PDF saved to: ${outputPath}`);
     } catch (error) {
         console.error('Error merging files:', error);
         throw error;
@@ -138,10 +141,10 @@ const mergeFilesToPdf = async (files, outputPath) => {
 
 
 // Post form with file upload and PDF merging
-// Post form with file upload and PDF merging
+
 app.post('/postform', upload.array('files'), async (req, res) => {
     try {
-        console.log('Files received:', req.files);
+        // console.log('Files received:', req.files);
 
         // Extract and parse form fields from req.body
         const { fy_year, month, head_cat, sub_cat, date, received_by, particulars, bill_no, departments, amount, vehicles } = req.body;
@@ -153,7 +156,7 @@ app.post('/postform', upload.array('files'), async (req, res) => {
         const parsedDepartments = JSON.parse(departments || '[]');
         const parsedVehicles = JSON.parse(vehicles || '[]');
 
-        // Generate output file name
+        // Generate output file name for the merged PDF
         const billNumber = bill_no || 'unknown';
         const todayDate = date || new Date().toISOString().split('T')[0];
         const randomNumber = Math.floor(Math.random() * 1000);
@@ -163,15 +166,10 @@ app.post('/postform', upload.array('files'), async (req, res) => {
         // Process files (e.g., merge PDFs)
         await mergeFilesToPdf(req.files, outputPath);
 
-        // Delete the individual files after merging
-        for (const file of req.files) {
-            const filePath = path.join(__dirname, 'public', 'pdf', file.filename);
-            if (fs.existsSync(filePath)) {
-                fs.unlinkSync(filePath);
-            }
-        }
+        // Collect original filenames to store in the 'uploads' array
+        const uploadedFiles = req.files.map(file => file.originalname);
 
-        // Save form data along with the output file name
+        // Save form data along with the output file name and uploaded file names
         const newForm = new form({
             fy_year,
             month,
@@ -184,20 +182,18 @@ app.post('/postform', upload.array('files'), async (req, res) => {
             departments: parsedDepartments,
             amount,
             vehicles: parsedVehicles,
-            files: outputFileName
+            files: outputFileName, // Merged PDF filename
+            uploads: uploadedFiles  // Original filenames
         });
 
         await newForm.save();
         res.json({ message: `${fy_year} has been added` });
-        console.log(newForm);
+        // console.log(newForm);
     } catch (error) {
         console.error('Error saving form:', error);
         res.status(500).json({ error: 'Failed to add form' });
     }
 });
-
-
-
 
 // Get forms
 app.get('/getforms', async (req, res) => {
@@ -208,6 +204,81 @@ app.get('/getforms', async (req, res) => {
         res.status(500).json({ error: 'Failed to retrieve forms' });
     }
 });
+
+// GET FORM DATA BY FY YEAR AND MONTH 
+
+app.get('/fy_year_month/:fy_year/:month', async (req, res) => {
+    const { fy_year, month } = req.params;
+    try {
+        const found = await form.find({ 
+            fy_year: { '$eq': fy_year }, 
+            month: { '$eq': month } 
+        });
+        res.json(found);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to retrieve forms' });
+    }
+});
+
+// FORM FY YEAR DROP DOWN 
+
+app.get('/getfyyearoption', async (req, res) => {
+    try {
+        // Fetch only the fy_year field from the documents
+        const data = await form.find({}, { fy_year: 1, _id: 0 }).exec();
+
+        // Extract fy_year values and remove duplicates
+        const fyYears = data.map(doc => doc.fy_year);
+        const uniqueFyYears = [...new Set(fyYears)];
+
+        // Map unique fy_year values to the desired format
+        const formattedData = uniqueFyYears.map(year => ({ fy_year: year }));
+
+        // Return the formatted data as a JSON array
+        res.json(formattedData);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to retrieve fy_year' });
+    }
+});
+
+// FORM MONTH DROP DOWN 
+
+app.get('/getmonthoption', async (req, res) => {
+    try {
+        // Define the order of months
+        const monthOrder = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        ];
+
+        // Fetch only the month field from the documents
+        const data = await form.find({}, { month: 1, _id: 0 }).exec();
+
+        // Extract month values and remove duplicates
+        const months = data.map(doc => doc.month);
+        const uniqueMonths = [...new Set(months)];
+
+        // Sort unique months based on the predefined order
+        const sortedMonths = uniqueMonths.sort((a, b) => {
+            return monthOrder.indexOf(a) - monthOrder.indexOf(b);
+        });
+
+        // Map sorted months to the desired format
+        const formattedData = sortedMonths.map(month => ({ month }));
+
+        // Return the formatted data as a JSON array
+        res.json(formattedData);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to retrieve months' });
+    }
+});
+
+
+
+
+
+
+
 
 // Get form by various filters
 app.get('/amount/:given', async (req, res) => {
@@ -368,6 +439,106 @@ app.get('/getfy_year', async (req, res) => {
         res.json(fy_year_data);
     } catch (error) {
         res.status(500).json({ error: 'Failed to retrieve fy_year' });
+    }
+});
+
+
+// TRUE FY YEAR ADMIN 
+
+app.post('/settruefyyear', async (req, res) => {
+    let { fy_name } = req.body;
+  
+  
+    // Validate the input
+    if (typeof fy_name !== 'number') {
+      return res.status(400).send('Invalid input: fy_name must be a number');
+    }
+  
+    try {
+      // Find or create fiscal year
+      const fyYear = await fy_year.findOneAndUpdate(
+        { fy_name },
+        { fy_id: true },
+        { new: true, upsert: true } // upsert creates a new document if none is found
+      );
+  
+      res.json(fyYear);
+    } catch (err) {
+      console.error('Error processing request:', err);
+      res.status(500).send('Error processing request');
+    }
+  });
+
+  // FALSE FY YEAR ADMIN
+  app.post('/setfalsefyyear', async (req, res) => {
+    let { fy_name } = req.body;
+
+    // Validate the input
+    if (typeof fy_name !== 'number') {
+        return res.status(400).send('Invalid input: fy_name must be a number');
+    }
+
+    try {
+        // Find or create fiscal year and set fy_id to false
+        const fyYear = await fy_year.findOneAndUpdate(
+            { fy_name },
+            { fy_id: false }, // Set fy_id to false
+            { new: true, upsert: true } // upsert creates a new document if none is found
+        );
+
+        res.json(fyYear);
+    } catch (err) {
+        console.error('Error processing request:', err);
+        res.status(500).send('Error processing request');
+    }
+});
+
+ // TRUE MONTH ADMIN
+app.post('/setmonthtrue', async (req, res) => {
+    const { month_name } = req.body;
+ 
+
+    // Validate the input
+    if (typeof month_name !== 'string') {
+        return res.status(400).send('Invalid input: month_name must be a string');
+    }
+
+    try {
+        // Find or create month and set month_id to true
+        const monthDoc = await month.findOneAndUpdate(
+            { month_name },
+            { month_id: true }, // Set month_id to true
+            { new: true, upsert: true } // upsert creates a new document if none is found
+        );
+
+        res.json(monthDoc);
+    } catch (err) {
+        console.error('Error processing request:', err);
+        res.status(500).send('Error processing request');
+    }
+});
+
+// FALSE MONTH ADMIN
+app.post('/setmonthfalse', async (req, res) => {
+    const { month_name } = req.body;
+
+    // Validate the input
+    if (typeof month_name !== 'string') {
+        return res.status(400).send('Invalid input: month_name must be a string');
+    }
+
+    try {
+        // Find or create month and set month_id to false
+        const monthDoc = await month.findOneAndUpdate(
+            { month_name },
+            { month_id: false }, // Set month_id to false
+            { new: true, upsert: true } // upsert creates a new document if none is found
+        );
+
+        res.json(monthDoc);
+    } catch (err) {
+        console.error('Error processing request:', err);
+        res.status(500).send('Error processing request');
     }
 });
 

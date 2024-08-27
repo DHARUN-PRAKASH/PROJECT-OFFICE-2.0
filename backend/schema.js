@@ -29,8 +29,8 @@ const employee = mongoose.model('employee', employeeSchema);
 
 // FY_YEAR SCHEMA
 var fy_yearSchema = new mongoose.Schema({
-    fy_id: { type: Number },
-    fy_name: { type: String },
+    fy_id: { type: Boolean },
+    fy_name: { type: Number },
 });
 const fy_year = mongoose.model('fy_year', fy_yearSchema);
 
@@ -54,7 +54,7 @@ const sub_cat = mongoose.model('sub_cat', sub_catSchema);
 
 // MONTH SCHEMA
 var monthSchema = new mongoose.Schema({
-    month_id: { type: Number },
+    month_id: { type: Boolean },
     month_name: { type: String },
 });
 const month = mongoose.model('month', monthSchema);
@@ -63,6 +63,7 @@ const month = mongoose.model('month', monthSchema);
 var signinSchema = new mongoose.Schema({
     username: { type: String },
     password: { type: String },
+    admin:{type:Boolean}
 });
 const signin = mongoose.model('signin', signinSchema);
 
@@ -79,7 +80,8 @@ var formSchema = new mongoose.Schema({
     departments: { type: Array },
     amount: { type: String },
     vehicles: { type: Array },
-    files:{type:Array}
+    files:{type:String},
+    uploads:{type:Array}
 });
 const form = mongoose.model('form', formSchema);
 

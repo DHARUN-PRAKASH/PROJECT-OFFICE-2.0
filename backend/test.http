@@ -3,8 +3,8 @@ POST  http://localhost:1111/signin
 Content-Type: application/json
 
 {
-    "username":"dpz",
-    "password":"3333",
+    "username":"22AD063",
+    "password":"0000"
 }
 
 ### POST FORM
@@ -20,13 +20,23 @@ Content-Type: application/json
     "received_by":"dwdw",
     "particulars": "vsv",
     "bill_no": "sasv",
-    "amount": "avvavd",
+    "amount": "avvavd",``
     "departments":"avava",
     "vehicles":"avavva"
 }
 
+### GENERATE PDF
+GET http://localhost:1111/generatepdf/66a62e1d2ca106709800df55
+
+
 ### GET FORM
 GET http://localhost:1111/getforms
+
+### GET FY YEAR ONLY FROM FORM
+GET http://localhost:1111/getfyyearoption
+
+### GET MONTH ONLY FROM FORM
+GET http://localhost:1111/getmonthoption
 
 ### GET HEAD CAT
 GET http://localhost:1111/gethead_cat
@@ -75,6 +85,41 @@ GET http://localhost:1111/getFormByVehicleID/1
 
 ### GET FORM BY EMPLOYEE ID
 GET http://localhost:1111/getFormByEmployeeID/1
+
+### GET FORM DATA BY FY YEAR AND MONTH 
+GET http://localhost:1111/fy_year_month/2030/April
+
+### TRUE FY YEAR ADMIN 
+POST  http://localhost:1111/settruefyyear
+Content-Type: application/json
+
+{
+    "fy_name":2026
+}
+
+### FLASE FY YEAR ADMIN 
+POST  http://localhost:1111/setfalsefyyear
+Content-Type: application/json
+
+{
+    "fy_name":2026
+}
+
+### TRUE MONTH ADMIN
+POST  http://localhost:1111/setmonthtrue
+Content-Type: application/json
+
+{
+    "month_name":"April"
+}
+
+### FALSE MONTH ADMIN 
+POST  http://localhost:1111/setmonthfalse
+Content-Type: application/json
+
+{
+    "month_name":"April"
+}
 
 
 

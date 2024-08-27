@@ -1,371 +1,158 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { TextField, Button, Autocomplete, Grid, Box, Typography, Chip } from '@mui/material';
-import { useDropzone } from 'react-dropzone';
-import { postform, getHeadCat, getSubCat, getMonth, getDepartment, getEmployee, getVehicle, getFyYear } from './axios';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { Typography, Container, Box, Card, CardContent, Button, FormControl, TextField, Switch } from '@mui/material';
+import { DesktopDatePicker } from '@mui/x-date-pickers';
+import Dash from './dash';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'; 
 
-const Form = ({ handleClose }) => {
-  const [fy_year, setFyYear] = useState(null);
-  const [month, setMonth] = useState(null);
-  const [head_cat, setHeadCat] = useState(null);
-  const [sub_cat, setSubCat] = useState(null);
-  const [date, setDate] = useState(null);
-  const [received_by, setReceivedBy] = useState([]);
-  const [particulars, setParticulars] = useState(null);
-  const [bill_no, setBillNo] = useState(null);
-  const [departments, setDepartments] = useState(null);
-  const [amount, setAmount] = useState(null);
-  const [vehicles, setVehicles] = useState(null);
-
-  const [headCats, setHeadCats] = useState([]);
-  const [subCats, setSubCats] = useState([]);
-  const [months, setMonths] = useState([]);
-  const [departmentsList, setDepartmentsList] = useState([]);
-  const [employees, setEmployees] = useState([]);
-  const [vehiclesList, setVehiclesList] = useState([]);
-  const [fyYears, setFyYears] = useState([]);
-
-  const [isSubCatDisabled, setIsSubCatDisabled] = useState(true);
-  const [isDepartmentDisabled, setIsDepartmentDisabled] = useState(true);
-  const [isVehicleDisabled, setIsVehicleDisabled] = useState(true);
-
-  const [files, setFiles] = useState([]);
+export const Admin = () => {
+  const [selectedFyYear, setSelectedFyYear] = useState(null);
+  const [selectedMonth, setSelectedMonth] = useState(null);
+  const [isFyYearActive, setIsFyYearActive] = useState(false);
+  const [isMonthActive, setIsMonthActive] = useState(false);
+  const [cardsData, setCardsData] = useState([]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const headCatData = await getHeadCat();
-        setHeadCats(headCatData);
-
-        const subCatData = await getSubCat();
-        setSubCats(subCatData);
-
-        const monthData = await getMonth();
-        setMonths(monthData);
-
-        const departmentData = await getDepartment();
-        setDepartmentsList(departmentData);
-
-        const employeeData = await getEmployee();
-        setEmployees(employeeData);
-
-        const vehicleData = await getVehicle();
-        setVehiclesList(vehicleData);
-
-        const fyYearData = await getFyYear();
-        setFyYears(fyYearData);
-      } catch (error) {
+    axios.get('http://localhost:1111/getmonth')
+      .then(response => {
+        setCardsData(response.data);
+      })
+      .catch(error => {
         console.error('Error fetching data:', error);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    if (sub_cat) {
-      const subCatSplId = sub_cat.spl_id;
-      const departmentEnabled = departmentsList.some(dept => dept.spl_id === subCatSplId);
-      const vehicleEnabled = vehiclesList.some(vehicle => vehicle.spl_id === subCatSplId);
-
-      setIsDepartmentDisabled(!departmentEnabled);
-      setIsVehicleDisabled(!vehicleEnabled);
-
-      if (!departmentEnabled) {
-        setDepartments(null);
-      }
-
-      if (!vehicleEnabled) {
-        setVehicles(null);
-      }
-    }
-  }, [sub_cat, departmentsList, vehiclesList]);
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-  
-    const formData = new FormData();
-    const formValues = {
-      fy_year: fy_year?.fy_name || '',
-      month: month?.month_name || '',
-      head_cat: head_cat || '', // Store the entire value
-      sub_cat: sub_cat || '', // Store the entire value
-      date,
-      received_by: received_by, // Store the entire value
-      particulars,
-      bill_no,
-      departments: departments || '', // Store the entire value
-      amount,
-      vehicles: vehicles || '', // Store the entire value
-    };
-  
-    // Append form fields to formData
-    Object.keys(formValues).forEach(key => {
-      formData.append(key, formValues[key]);
-    });
-  
-    // Append files to formData
-    files.forEach(file => {
-      formData.append('files', file);
-    });
-  
-    try {
-      const result = await axios.post('http://localhost:1111/postform', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
       });
-      alert(result.data.message);
-    } catch (error) {
-      console.error('Error posting form:', error);
-      alert('Error adding form: ' + error.message);
-    }
-  };
-  
-
-
-  const handleClear = () => {
-    setFyYear(null);
-    setMonth(null);
-    setHeadCat(null);
-    setSubCat(null);
-    setDate(null);
-    setReceivedBy([]);
-    setParticulars('');
-    setBillNo(null);
-    setDepartments(null);
-    setAmount('');
-    setVehicles(null);
-    setIsSubCatDisabled(true);
-    setIsDepartmentDisabled(true);
-    setIsVehicleDisabled(true);
-    setFiles([]);
-  };
-
-  const onDrop = useCallback((acceptedFiles) => {
-    setFiles((prevFiles) => [...prevFiles, ...acceptedFiles]);
   }, []);
 
-  const { getRootProps, getInputProps } = useDropzone({ onDrop });
+  // Fetch the FY year status when a year is selected
+  useEffect(() => {
+    if (selectedFyYear) {
+      axios.get(`http://localhost:1111/getfy_year?fy_name=${selectedFyYear.getFullYear()}`)
+        .then(response => {
+          setIsFyYearActive(response.data.fy_id); // Set the switch state based on fetched data
+        })
+        .catch(error => {
+          console.error('Error fetching FY year status:', error);
+        });
+    } else {
+      setIsFyYearActive(false); // Reset switch state if no year is selected
+    }
+  }, [selectedFyYear]);
 
-  const handleFileRemove = (fileName) => {
-    setFiles((prevFiles) => prevFiles.filter(file => file.name !== fileName));
+  // Fetch the month status when a month is selected
+  useEffect(() => {
+    if (selectedMonth) {
+      axios.get(`http://localhost:1111/getmonth?month_name=${selectedMonth.toLocaleString('default', { month: 'long' })}`)
+        .then(response => {
+          setIsMonthActive(response.data.month_id); // Set the switch state based on fetched data
+        })
+        .catch(error => {
+          console.error('Error fetching month status:', error);
+        });
+    } else {
+      setIsMonthActive(false); // Reset switch state if no month is selected
+    }
+  }, [selectedMonth]);
+
+  const handleFyYearChange = (newValue) => {
+    setSelectedFyYear(newValue);
+  };
+
+  const handleMonthChange = (newValue) => {
+    setSelectedMonth(newValue);
+  };
+
+  const handleFyYearToggle = async () => {
+    if (!selectedFyYear) return;
+
+    const newStatus = !isFyYearActive;
+    setIsFyYearActive(newStatus);
+
+    try {
+      const url = newStatus
+        ? 'http://localhost:1111/settruefyyear'
+        : 'http://localhost:1111/setfalsefyyear';
+
+      await axios.post(url, { fy_name: selectedFyYear.getFullYear() });
+    } catch (error) {
+      console.error('Error updating FY year status:', error);
+    }
+  };
+
+  const handleMonthToggle = async () => {
+    if (!selectedMonth) return;
+
+    const newStatus = !isMonthActive;
+    setIsMonthActive(newStatus);
+
+    try {
+      const url = newStatus
+        ? 'http://localhost:1111/setmonthtrue'
+        : 'http://localhost:1111/setmonthfalse';
+
+      await axios.post(url, { month_name: selectedMonth.toLocaleString('default', { month: 'long' }) });
+    } catch (error) {
+      console.error('Error updating month status:', error);
+    }
   };
 
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-      <Box
-        component="form"
-        onSubmit={handleSubmit}
-        sx={{
-          p: 4,
-          boxShadow: 3,
-          borderRadius: 2,
-          width: '60%',
-          bgcolor: 'background.paper',
-          borderRadius: '50px'
-        }}
-      >
-        <Typography variant="h4" component="h2" gutterBottom style={{ backgroundColor: '#32348c', color: '#fff', textAlign: 'center', borderRadius: '50px' }}>
-          <b>REPORT</b>
-        </Typography>
-        <Grid container spacing={2}>
-          {/* Fiscal Year, Month, and Selected Date */}
-          <Grid item xs={12}>
-            <Grid container spacing={2}>
-              <Grid item xs={4}>
-                <Autocomplete
-                  options={fyYears}
-                  getOptionLabel={(option) => option.fy_name}
-                  value={fy_year}
-                  onChange={(e, newValue) => setFyYear(newValue)}
-                  renderInput={(params) => <TextField {...params} label="Fiscal Year" sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }} />}
-                />
-              </Grid>
-              <Grid item xs={4}>
-                <Autocomplete
-                  options={months}
-                  getOptionLabel={(option) => option.month_name}
-                  value={month}
-                  onChange={(e, newValue) => setMonth(newValue)}
-                  renderInput={(params) => <TextField {...params} label="Month" sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }} />}
-                />
-              </Grid>
-              <Grid item xs={4}>
-                <TextField
-                  required
-                  fullWidth
-                  label="Date"
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
-                  sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
-                />
-              </Grid>
-            </Grid>
-          </Grid>
+    <div>
+      <Dash />
+      <Container sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', marginBottom: '50px' }}>
+        <Box mt={5} p={3} boxShadow={3} borderRadius={5} sx={{ backgroundColor: 'white', width: '80vw', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <Typography variant="h4" sx={{ color: 'white', backgroundColor: '#32348c', padding: '10px', borderRadius: '5px', textAlign: 'center', width: '100%' }}><b>ADMIN</b></Typography>
 
-          {/* Head Category and Sub Category */}
-          <Grid item xs={12}>
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <Autocomplete
-                  options={headCats}
-                  getOptionLabel={(option) => option.head_cat_name}
-                  value={head_cat}
-                  onChange={(e, newValue) => {
-                    setHeadCat(newValue);
-                    setIsSubCatDisabled(newValue === null);
-                    if (newValue === null) {
-                      setSubCat(null);
-                      setDepartments(null);
-                      setVehicles(null);
-                    }
-                  }}
-                  renderInput={(params) => <TextField {...params} label="Head Category" sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }} />}
+          <Box sx={{ width: '100%', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', marginTop: '10px' }}>
+            <Card sx={{ width: '48%' }}>
+              <CardContent>
+                <LocalizationProvider dateAdapter={AdapterDateFns}>
+                  <FormControl sx={{ marginTop: 0, width: '100%' }}>
+                    <DesktopDatePicker
+                      views={['year']}
+                      label="Financial Year"
+                      value={selectedFyYear}
+                      onChange={handleFyYearChange}
+                      renderInput={(params) => <TextField {...params} />}
+                    />
+                  </FormControl>
+                </LocalizationProvider>
+                <Switch
+                  checked={isFyYearActive}
+                  onChange={handleFyYearToggle}
+                  disabled={!selectedFyYear}
                 />
-              </Grid>
-              <Grid item xs={6}>
-                <Autocomplete
-                  options={subCats}
-                  getOptionLabel={(option) => option.sub_cat_name}
-                  value={sub_cat}
-                  onChange={(e, newValue) => setSubCat(newValue)}
-                  renderInput={(params) => <TextField {...params} label="Sub Category" sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }} />}
-                  disabled={isSubCatDisabled}
+              </CardContent>
+            </Card>
+            <Card sx={{ width: '48%' }}>
+              <CardContent>
+                <LocalizationProvider dateAdapter={AdapterDateFns}>
+                  <FormControl sx={{ marginTop: 0, width: '100%' }}>
+                    <DesktopDatePicker
+                      views={['month']}
+                      label="Month"
+                      value={selectedMonth}
+                      onChange={handleMonthChange}
+                      renderInput={(params) => <TextField {...params} />}
+                    />
+                  </FormControl>
+                </LocalizationProvider>
+                <Switch
+                  checked={isMonthActive}
+                  onChange={handleMonthToggle}
+                  disabled={!selectedMonth}
                 />
-              </Grid>
-            </Grid>
-          </Grid>
-
-          {/* Departments and Vehicles */}
-          <Grid item xs={12}>
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <Autocomplete
-                  options={departmentsList}
-                  getOptionLabel={(option) => option.dept_full_name}
-                  value={departments}
-                  onChange={(e, newValue) => setDepartments(newValue)}
-                  renderInput={(params) => <TextField {...params} label="Departments" sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }} />}
-                  disabled={isDepartmentDisabled}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <Autocomplete
-                  options={vehiclesList}
-                  getOptionLabel={(option) => option.vehicle_name}
-                  value={vehicles}
-                  onChange={(e, newValue) => setVehicles(newValue)}
-                  renderInput={(params) => <TextField {...params} label="Vehicles" sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }} />}
-                  disabled={isVehicleDisabled}
-                />
-              </Grid>
-            </Grid>
-          </Grid>
-
-          {/* Received By and Particulars */}
-          <Grid item xs={12}>
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <Autocomplete
-                  multiple
-                  options={employees}
-                  getOptionLabel={(option) => option.emp_name}
-                  value={received_by}
-                  onChange={(e, newValue) => setReceivedBy(newValue)}
-                  renderInput={(params) => <TextField {...params} label="Received By" sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }} />}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  required
-                  fullWidth
-                  label="Particulars"
-                  value={particulars}
-                  onChange={(e) => setParticulars(e.target.value)}
-                  sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
-                />
-              </Grid>
-            </Grid>
-          </Grid>
-
-          {/* Bill Number and Amount */}
-          <Grid item xs={12}>
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <TextField
-                  required
-                  fullWidth
-                  label="Bill Number"
-                  value={bill_no}
-                  onChange={(e) => setBillNo(e.target.value)}
-                  sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  required
-                  fullWidth
-                  label="Amount"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
-                />
-              </Grid>
-            </Grid>
-          </Grid>
-
-          {/* File Upload and Display */}
-          <Grid item xs={12}>
-            <Box
-              {...getRootProps()}
-              sx={{
-                borderRadius: '50px',
-                p: 1,
-                textAlign: 'center',
-                cursor: 'pointer',
-                backgroundColor: '#1565c0',
-                transition: 'background-color 0.3s, box-shadow 0.3s',
-                '&:hover': {
-                  backgroundColor: '#1e88e5',
-                  boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.2)',
-                },
-              }}
-            >
-              <input {...getInputProps()} />
-              <Typography style={{ color: '#ffff' }} variant="body1">UPLOAD FILE</Typography>
-            </Box>
-            <Box sx={{ mt: '15px', display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {files.map((file, index) => (
-                <Chip
-                  key={index}
-                  label={file.name}
-                  onDelete={() => handleFileRemove(file.name)}
-                  color="primary"
-                />
-              ))}
-            </Box>
-          </Grid>
-
-          {/* Submit and Clear Buttons */}
-          <Grid item xs={12}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Button type="submit" variant="contained" color="success" sx={{ flexGrow: 1, mr: 1,borderRadius:'50px' }}>
-                Submit
-              </Button>
-              <Button variant="contained" color="error" onClick={handleClear} sx={{ flexGrow: 1,borderRadius:'50px' }}>
-                Clear
-              </Button>
-            </Box>
-          </Grid>
-        </Grid>
-      </Box>
-    </Box>
+              </CardContent>
+            </Card>
+          </Box>
+          <Box sx={{ width: '100%', display: 'flex', flexWrap: 'wrap', justifyContent: 'center' }}>
+            {cardsData.map((month, index) => (
+              <Card key={index} sx={{ width: '12%', marginBottom: '20px', marginLeft: '20px', marginRight: '10px', height: "5vh", textAlign: 'center', backgroundColor: month.month_id === 0 ? '#e91e63' : month.month_id === 1 ? '#00a67d' : 'white' }}>
+                <CardContent sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'white' }}>{month.month_name}</CardContent>
+              </Card>
+            ))}
+          </Box>
+        </Box>
+      </Container>
+    </div>
   );
 };
-
-export default Form;

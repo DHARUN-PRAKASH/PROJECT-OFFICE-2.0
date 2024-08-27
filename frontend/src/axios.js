@@ -1,5 +1,14 @@
 import axios from 'axios';
 
+
+
+// POST SIGN IN
+
+export const postsignin = (userData) => {
+  return axios.post("http://localhost:1111/signin", userData);
+};
+
+
 // POST REPORT OR FORM
 
 export const postform = async (formData, files) => {
@@ -31,18 +40,6 @@ export const postform = async (formData, files) => {
     throw error;
   }
 };
-
-// export const postform = async (formData) => {
-//   const config = {
-//     headers: {
-//       'Content-Type': 'multipart/form-data',
-//     },
-//   };
-
-//   const response = await axios.post('http://localhost:1111/postform', formData, config);
-//   return response.data;
-// };
-  
 
 export const getHeadCat = async () => {
   const response = await axios.get('http://localhost:1111/gethead_cat');
@@ -80,8 +77,18 @@ export const getFyYear = async () => {
 };
 
 export const getforms = async () => {
-  const response = await axios.get('http://localhost:1111/getforms');
-  return response.data;
+  try {
+    const response = await axios.get('http://localhost:1111/getforms');
+    const data = response.data;
+
+    // Reverse the data array so that the last item comes first
+    const reversedData = data.reverse();
+
+    return reversedData;
+  } catch (error) {
+    console.error('Error fetching forms:', error);
+    throw error;
+  }
 };
 
 
@@ -180,6 +187,40 @@ export const getFormsByEmployeeID = async (empID) => {
     return response.data;
   } catch (error) {
     console.error('Error fetching forms by employee ID:', error);
+    throw error;
+  }
+};
+
+// GET FORM DATA BY FY YEAR AND MONTH 
+
+export const getFormsByFyYearAndMonth = async (fy_year, month) => {
+  try {
+    const response = await axios.get(`http://localhost:1111/fy_year_month/${fy_year}/${month}`);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to retrieve forms', error);
+    throw error;
+  }
+};
+
+// Fetch financial year options
+export const getFyYearOptions = async () => {
+  try {
+    const response = await axios.get('http://localhost:1111/getfyyearoption');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching financial year options:', error);
+    throw error;
+  }
+};
+
+// Fetch month options
+export const getMonthOptions = async () => {
+  try {
+    const response = await axios.get('http://localhost:1111/getmonthoption');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching month options:', error);
     throw error;
   }
 };
