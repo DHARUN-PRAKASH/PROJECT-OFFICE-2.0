@@ -99,18 +99,19 @@ const SignIn = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     const userData = {
         username: users.username,
         password: users.password,
     };
-
+  
     try {
         const res = await postsignin(userData);
         console.log("Server Response:", res);
-
+  
         if (res.data.username) {
             sessionStorage.setItem("logged", JSON.stringify(userData));
+            sessionStorage.setItem("admin", res.data.admin);
             window.location.assign("/");
         } else {
             alert("Failed to sign in. Please check your credentials.");
@@ -120,6 +121,7 @@ const SignIn = () => {
         alert("Sign-in failed. Please try again.");
     }
   };
+  
 
   const clearFields = () => {
     setUsers({

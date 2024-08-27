@@ -1,31 +1,49 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 import Table from './table';
 import Form from './form';
 import SignIn from './signin';
 import ConsolidateAndSummary from './consolidate_summary';
 import { Admin } from './admin';
 
+const App = () => {
+  const isLoggedIn = sessionStorage.getItem('logged');
+  const isAdmin = sessionStorage.getItem('admin') === 'true';
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        {isLoggedIn ? (
+          isAdmin ? (
+            // Routes for admin users
+            <>
+              <Route path='/' element={<Admin />} />
+              <Route path='/form' element={<Form />} />
+              <Route path='/cs' element={<ConsolidateAndSummary />} />
+              <Route path='/table' element={<Table />} />
+              <Route path='*' element={<Navigate to="/" />} />
+            </>
+          ) : (
+            // Routes for non-admin users
+            <>
+              <Route path='/' element={<Table />} />
+              <Route path='/form' element={<Form />} />
+              <Route path='/cs' element={<ConsolidateAndSummary />} />
+              <Route path='*' element={<Navigate to="/" />} />
+            </>
+          )
+        ) : (
+          // Routes for users who are not logged in
+          <>
+            <Route path='/' element={<SignIn />} />
+            <Route path='*' element={<Navigate to="/" />} />
+          </>
+        )}
+      </Routes>
+    </BrowserRouter>
+  );
+};
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
-  (sessionStorage.getItem('logged'))
-    ? (
-      <BrowserRouter>
-        <Routes>
-          <Route exact path='/' element={<Table />} />
-          <Route exact path='/form' element={<Form/>} />
-          <Route exact path='/cs' element={<ConsolidateAndSummary/>} />
-          <Route exact path='/admin' element={<Admin/>} /> 
-        </Routes>
-      </BrowserRouter>
-    )
-    : (
-      <BrowserRouter>
-        <Routes>
-          <Route exact path='/' element={<SignIn />} />
-        </Routes>
-      </BrowserRouter>
-    )
-);
+root.render(<App />);

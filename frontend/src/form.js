@@ -52,7 +52,9 @@ const Form = ({ handleClose }) => {
         setSubCats(subCatData);
 
         const monthData = await getMonth();
-        setMonths(monthData);
+        const filteredMonths = monthData.filter(month => month.month_id === true);
+        setMonths(filteredMonths);
+        
 
         const departmentData = await getDepartment();
         setDepartmentsList(departmentData);
@@ -64,7 +66,9 @@ const Form = ({ handleClose }) => {
         setVehiclesList(vehicleData);
 
         const fyYearData = await getFyYear();
-        setFyYears(fyYearData);
+        const filteredFyYears = fyYearData.filter(fyYear => fyYear.fy_id === true);
+        setFyYears(filteredFyYears);
+        
       } catch (error) {
         console.error('Error fetching data:', error);
       }

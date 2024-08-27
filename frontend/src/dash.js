@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { styled, alpha } from '@mui/material/styles';
 import AppBar from '@mui/material/AppBar';
@@ -116,13 +115,13 @@ export default function Dash() {
 
   const handleLogOut = () => {
     sessionStorage.removeItem('logged');
-    window.location.assign("/")
+    sessionStorage.removeItem('admin');
+    window.location.assign("/");
   };
 
   const handleMobileMenuOpen = (event) => {
     setMobileMoreAnchorEl(event.currentTarget);
   };
-
 
   const handleDialogClose = () => {
     setOpenDialog(false);
@@ -134,8 +133,6 @@ export default function Dash() {
       [recipeId]: !prev[recipeId],
     }));
   };
-
-
 
   const isInWishlist = (recipeId) => {
     // Replace with actual logic to check if the recipe is in the wishlist
@@ -218,45 +215,49 @@ export default function Dash() {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-<AppBar position="fixed" sx={{ backgroundColor: '#ffffff', height: '80px' }}>
-  <Toolbar>
-    {/* Your existing content */}
-    <Box sx={{ display: 'flex', alignItems: 'center', flexDirection: 'row', gap: 2,marginTop:'10px' }}>
-      <img src={textLogo} alt="MEC" style={{ width: '100%', height: '60px' }} />
-    </Box>
-    <Box sx={{ flexGrow: 1 }} />
-    <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
-      <IconButton size="large" aria-label="show 17 new notifications" color="inherit">
-        <Badge badgeContent={0} color="error">
-          <NotificationsIcon sx={{ color: '#32348c' }} />
-        </Badge>
-      </IconButton>
-      <IconButton
-        size="large"
-        edge="end"
-        aria-label="account of current user"
-        aria-controls={menuId}
-        aria-haspopup="true"
-        onClick={handleProfileMenuOpen}
-        color="inherit"
-      >
-        <AccountCircle sx={{ color: '#32348c' }} />
-      </IconButton>
-    </Box>
-    <Box sx={{ display: { xs: 'flex', md: 'none' } }}>
-      <IconButton
-        size="large"
-        aria-label="show more"
-        aria-controls={mobileMenuId}
-        aria-haspopup="true"
-        onClick={handleMobileMenuOpen}
-        color="inherit"
-      >
-        <MoreIcon sx={{ color: '#32348c' }} />
-      </IconButton>
-    </Box>
-  </Toolbar>
-</AppBar>
+      <AppBar position="fixed" sx={{ backgroundColor: '#ffffff', height: '80px' }}>
+        <Toolbar>
+          <Box sx={{ display: 'flex', alignItems: 'center', flexDirection: 'row', gap: 2, marginTop: '10px' }}>
+            <img 
+              src={textLogo} 
+              alt="MEC" 
+              style={{ width: '100%', height: '60px', cursor: 'pointer' }} 
+              onClick={() => navi('/table')} 
+            />
+          </Box>
+          <Box sx={{ flexGrow: 1 }} />
+          <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
+            <IconButton size="large" aria-label="show 17 new notifications" color="inherit">
+              <Badge badgeContent={0} color="error">
+                <NotificationsIcon sx={{ color: '#32348c' }} />
+              </Badge>
+            </IconButton>
+            <IconButton
+              size="large"
+              edge="end"
+              aria-label="account of current user"
+              aria-controls={menuId}
+              aria-haspopup="true"
+              onClick={handleProfileMenuOpen}
+              color="inherit"
+            >
+              <AccountCircle sx={{ color: '#32348c' }} />
+            </IconButton>
+          </Box>
+          <Box sx={{ display: { xs: 'flex', md: 'none' } }}>
+            <IconButton
+              size="large"
+              aria-label="show more"
+              aria-controls={mobileMenuId}
+              aria-haspopup="true"
+              onClick={handleMobileMenuOpen}
+              color="inherit"
+            >
+              <MoreIcon sx={{ color: '#32348c' }} />
+            </IconButton>
+          </Box>
+        </Toolbar>
+      </AppBar>
 
       {renderMobileMenu}
       {renderMenu}
@@ -267,12 +268,12 @@ export default function Dash() {
           <Grid container spacing={3}>
             {Array.isArray(searchResults) && searchResults.length > 0 ? (
               searchResults.map((recipe) => (
-                <Grid item xs={12} sm={6} md={4} lg={3} key={searchResults.recipeId}>
+                <Grid item xs={12} sm={6} md={4} lg={3} key={recipe.recipeId}>
                   <Card sx={{ maxWidth: 345 }}>
                     <CardHeader
                       avatar={
                         <Avatar sx={{ bgcolor: red[500] }} aria-label="recipe">
-                          {searchResults.recipeName.charAt(0)}
+                          {recipe.recipeName.charAt(0)}
                         </Avatar>
                       }
                       action={
@@ -280,14 +281,15 @@ export default function Dash() {
                           <MoreVertIcon />
                         </IconButton>
                       }
-                      title={searchResults.recipeName}
-                      subheader={`Cuisine: ${searchResults.cuisine}`}
+                      title={recipe.recipeName}
+                      subheader={`Cuisine: ${recipe.cuisine}`}
                     />
                     <CardMedia
                       component="img"
                       height="194"
                       image={recipe.image ? recipe.image : `/static/images/cards/default.jpg`} // Update this path as necessary
                       alt={recipe.recipeName}
+                      onClick={() => navi('/table')} // Navigate to /table when the image is clicked
                     />
                     <CardContent>
                       <Typography variant="body2" color="text.secondary">
@@ -297,20 +299,20 @@ export default function Dash() {
                     <CardActions disableSpacing>
                       <IconButton
                         aria-label="add to favorites"
-                        onClick={() => handleWishlist(searchResults.recipeId)}
+                        onClick={() => handleWishlist(recipe.recipeId)}
                       >
-                        <FavoriteIcon sx={{ color: isInWishlist(searchResults.recipeId) ? red[500] : 'inherit' }} />
+                        <FavoriteIcon sx={{ color: isInWishlist(recipe.recipeId) ? red[500] : 'inherit' }} />
                       </IconButton>
                       <IconButton
                         aria-label="share"
-                        onClick={() => handleShare(searchResults.recipeId)}
+                        onClick={() => handleShare(recipe.recipeId)}
                       >
                         <ShareIcon />
                       </IconButton>
                       <ExpandMore
-                        expand={expandedCards[searchResults.recipeId]}
-                        onClick={() => handleExpandClick(searchResults.recipeId)}
-                        aria-expanded={expandedCards[searchResults.recipeId]}
+                        expand={expandedCards[recipe.recipeId]}
+                        onClick={() => handleExpandClick(recipe.recipeId)}
+                        aria-expanded={expandedCards[recipe.recipeId]}
                         aria-label="show more"
                       >
                         <ExpandMoreIcon />
@@ -319,7 +321,7 @@ export default function Dash() {
                     <Collapse in={expandedCards[recipe.recipeId]} timeout="auto" unmountOnExit>
                       <CardContent>
                         <Typography paragraph>Ingredients:</Typography>
-                        <Typography paragraph>{searchResults.ingredient}</Typography>
+                        <Typography paragraph>{recipe.ingredient}</Typography>
                       </CardContent>
                     </Collapse>
                   </Card>

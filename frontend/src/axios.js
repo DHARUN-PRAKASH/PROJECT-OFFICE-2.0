@@ -214,7 +214,7 @@ export const getFyYearOptions = async () => {
   }
 };
 
-// Fetch month options
+// Fetch month options CS
 export const getMonthOptions = async () => {
   try {
     const response = await axios.get('http://localhost:1111/getmonthoption');
@@ -223,4 +223,43 @@ export const getMonthOptions = async () => {
     console.error('Error fetching month options:', error);
     throw error;
   }
+};
+
+// Fetch month data
+export const fetchMonthData = () => {
+  return axios.get(`http://localhost:1111/getmonth`);
+};
+
+// Get financial year status
+export const getFyYearStatus = (fyName) => {
+  return axios.get(`http://localhost:1111/getfy_year`, {
+    params: { fy_name: fyName }
+  });
+};
+
+// Get month status
+export const getMonthStatus = (monthName) => {
+  return axios.get(`http://localhost:1111/getmonth`, {
+    params: { month_name: monthName }
+  });
+};
+
+// Activate financial year
+export const activateFyYear = (fyName) => {
+  return axios.post(`http://localhost:1111/settruefyyear`, { fy_name: fyName });
+};
+
+// Lock financial year
+export const lockFyYear = (fyName) => {
+  return axios.post(`http://localhost:1111/setfalsefyyear`, { fy_name: fyName });
+};
+
+// Activate month
+export const activateMonth = (monthName) => {
+  return axios.post(`http://localhost:1111/setmonthtrue`, { month_name: monthName });
+};
+
+// Lock month
+export const lockMonth = (monthName) => {
+  return axios.post(`http://localhost:1111/setmonthfalse`, { month_name: monthName });
 };

@@ -17,25 +17,32 @@ app.use(express.static('public'));
 
 
 // Signin process
-app.post('/signin',async(req,res)=>{
-    try{
-      const user = req.body.username
-     const pass = req.body.password
-     const preuser = await signin.findOne({'$and':[{"username":{'$eq':user}},{"password":{'$eq':pass}}]})
-     if(preuser){
-         const cred = {
-             "username":user,
-             "password":pass
-         }
-         res.json(cred)
-     }
-     else{
-         response.json({"message":"error"})
-     }
-    }catch(err){
-     res.status(500).json({"error":err})
+app.post('/signin', async (req, res) => {
+    try {
+        const user = req.body.username;
+        const pass = req.body.password;
+        const preuser = await signin.findOne({ 
+            '$and': [
+                { "username": { '$eq': user } }, 
+                { "password": { '$eq': pass } }
+            ] 
+        });
+
+        if (preuser) {
+            const cred = {
+                "username": user,
+                "password": pass,
+                "admin": preuser.admin  // Include admin status in the response
+            };
+            res.json(cred);
+        } else {
+            res.json({ "message": "error" });
+        }
+    } catch (err) {
+        res.status(500).json({ "error": err });
     }
- })
+});
+
 
 // Post form with file upload and PDF merging
 // Ensure directories exist

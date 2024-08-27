@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { Typography, Container, Box, Card, CardContent, Button, FormControl, TextField, IconButton } from '@mui/material';
 import { DesktopDatePicker } from '@mui/x-date-pickers';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import CachedIcon from '@mui/icons-material/Cached';
 import Dash from './dash';
+import {
+  fetchMonthData,
+  getFyYearStatus,
+  getMonthStatus,
+  activateFyYear,
+  lockFyYear,
+  activateMonth,
+  lockMonth
+} from './axios'; // Adjust the path as needed
 
 export const Admin = () => {
   const [selectedFyYear, setSelectedFyYear] = useState(null);
@@ -14,18 +22,17 @@ export const Admin = () => {
   const [isMonthActive, setIsMonthActive] = useState(false);
   const [cardsData, setCardsData] = useState([]);
 
-  const fetchMonthData = () => {
-    axios.get('http://localhost:1111/getmonth')
-      .then(response => {
-        setCardsData(response.data);
-      })
-      .catch(error => {
-        console.error('Error fetching data:', error);
-      });
+  const fetchData = async () => {
+    try {
+      const response = await fetchMonthData();
+      setCardsData(response.data);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
   };
 
   useEffect(() => {
-    fetchMonthData();
+    fetchData();
   }, []);
 
   useEffect(() => {
@@ -49,7 +56,7 @@ export const Admin = () => {
 
   useEffect(() => {
     if (selectedFyYear) {
-      axios.get(`http://localhost:1111/getfy_year?fy_name=${selectedFyYear.getFullYear()}`)
+      getFyYearStatus(selectedFyYear.getFullYear())
         .then(response => {
           setIsFyYearActive(response.data.fy_id);
         })
@@ -63,7 +70,7 @@ export const Admin = () => {
 
   useEffect(() => {
     if (selectedMonth) {
-      axios.get(`http://localhost:1111/getmonth?month_name=${selectedMonth.toLocaleString('default', { month: 'long' })}`)
+      getMonthStatus(selectedMonth.toLocaleString('default', { month: 'long' }))
         .then(response => {
           setIsMonthActive(response.data.month_id);
         })
@@ -89,7 +96,7 @@ export const Admin = () => {
     setIsFyYearActive(true);
 
     try {
-      await axios.post('http://localhost:1111/settruefyyear', { fy_name: selectedFyYear.getFullYear() });
+      await activateFyYear(selectedFyYear.getFullYear());
     } catch (error) {
       console.error('Error activating FY year:', error);
     }
@@ -101,7 +108,7 @@ export const Admin = () => {
     setIsFyYearActive(false);
 
     try {
-      await axios.post('http://localhost:1111/setfalsefyyear', { fy_name: selectedFyYear.getFullYear() });
+      await lockFyYear(selectedFyYear.getFullYear());
     } catch (error) {
       console.error('Error locking FY year:', error);
     }
@@ -113,7 +120,7 @@ export const Admin = () => {
     setIsMonthActive(true);
 
     try {
-      await axios.post('http://localhost:1111/setmonthtrue', { month_name: selectedMonth.toLocaleString('default', { month: 'long' }) });
+      await activateMonth(selectedMonth.toLocaleString('default', { month: 'long' }));
     } catch (error) {
       console.error('Error activating month:', error);
     }
@@ -125,7 +132,7 @@ export const Admin = () => {
     setIsMonthActive(false);
 
     try {
-      await axios.post('http://localhost:1111/setmonthfalse', { month_name: selectedMonth.toLocaleString('default', { month: 'long' }) });
+      await lockMonth(selectedMonth.toLocaleString('default', { month: 'long' }));
     } catch (error) {
       console.error('Error locking month:', error);
     }
@@ -173,7 +180,6 @@ export const Admin = () => {
               </CardContent>
             </Card>
             <Card sx={{ width: '48%' }}>
-                
               <CardContent>
                 <LocalizationProvider dateAdapter={AdapterDateFns}>
                   <FormControl sx={{ marginTop: 0, width: '100%' }}>
@@ -219,7 +225,7 @@ export const Admin = () => {
                 
               </Card>
             ))}
-           <IconButton onClick={fetchMonthData} sx={{ color: '#32348c' }}>
+           <IconButton onClick={fetchData} sx={{ color: '#32348c' }}>
               <CachedIcon />
             </IconButton>
           </Box>
