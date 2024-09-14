@@ -2,13 +2,18 @@ require("./db");
 const express = require('express');
 const parser = require('body-parser');
 const cors = require('cors');
-const { signin, form, head_cat, sub_cat, month, department, vehicle, employee, fy_year } = require('./schema');
+const { signin, form, head_cat, sub_cat, month, department, vehicle, employee, fy_year} = require('./schema');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const { PDFDocument } = require('pdf-lib');
 
 const app = express();
+
+const monthOrder = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+];
 
 app.use(cors());
 app.use(parser.urlencoded({ extended: true }));
@@ -253,10 +258,6 @@ app.get('/getfyyearoption', async (req, res) => {
 app.get('/getmonthoption', async (req, res) => {
     try {
         // Define the order of months
-        const monthOrder = [
-            "January", "February", "March", "April", "May", "June",
-            "July", "August", "September", "October", "November", "December"
-        ];
 
         // Fetch only the month field from the documents
         const data = await form.find({}, { month: 1, _id: 0 }).exec();
@@ -400,14 +401,24 @@ app.get('/getsub_cat', async (req, res) => {
 });
 
 // Get month
+
+
 app.get('/getmonth', async (req, res) => {
     try {
+        // Retrieve all months from the database
         const data = await month.find();
-        res.json(data);
+        
+        // Sort the data based on the custom month order
+        const sortedData = data.sort((a, b) => {
+            return monthOrder.indexOf(a.month_name) - monthOrder.indexOf(b.month_name);
+        });
+
+        res.json(sortedData);
     } catch (error) {
         res.status(500).json({ error: 'Failed to retrieve month' });
     }
 });
+
 
 // Get department
 app.get('/getdepartment', async (req, res) => {
@@ -548,6 +559,99 @@ app.post('/setmonthfalse', async (req, res) => {
         res.status(500).send('Error processing request');
     }
 });
+
+// DELETE FORM 
+
+const mergedPdfPath = path.join(__dirname, 'public/merged_pdfs');
+const uploadsPath = path.join(__dirname, 'public/pdf');
+
+// Delete endpoint
+app.delete('/erase/:id', async (request, response) => {
+    try {
+        // Find the document by ID and delete it
+        const data = await form.findByIdAndDelete(request.params.id);
+
+        if (!data) {
+            return response.status(404).json({ message: 'Data not found' });
+        }
+
+        // Extract file names from the document
+        const { files, uploads } = data; // Assuming 'files' is for merged PDFs and 'uploads' for other files
+
+        // Delete the merged PDF file if it exists
+        if (files) {
+            const mergedPdfFile = path.join(mergedPdfPath, files);
+            if (fs.existsSync(mergedPdfFile)) {
+                fs.unlinkSync(mergedPdfFile);
+                console.log(`Deleted merged PDF: ${mergedPdfFile}`);
+            }
+        }
+
+        // Delete each upload file if they exist
+        if (uploads && uploads.length > 0) {
+            uploads.forEach(file => {
+                const uploadFile = path.join(uploadsPath, file);
+                if (fs.existsSync(uploadFile)) {
+                    fs.unlinkSync(uploadFile);
+                    console.log(`Deleted upload file: ${uploadFile}`);
+                }
+            });
+        }
+
+        // Respond with success message
+        response.json({ message: 'Data and associated files deleted successfully', data });
+    } catch (error) {
+        console.error('Error deleting data and files:', error);
+        response.status(500).json({ message: 'Internal server error', error });
+    }
+});
+
+
+// MODIFY FORM
+
+app.put('/modify', async (request, response) => {
+    try {
+      // Check if the request body contains an ID
+      if (!request.body._id) {
+        return response.status(400).json({ message: 'ID is required for updating the form.' });
+      }
+  
+      // Find and update the form by ID
+      const data = await form.findByIdAndUpdate(
+        request.body._id, // The ID to update
+        request.body,     // The updated data
+        { new: true, runValidators: true } // Return the updated document and run schema validators
+      );
+  
+      // Check if the form was found and updated
+      if (!data) {
+        return response.status(404).json({ message: 'Form not found.' });
+      }
+  
+      // Return the updated form data
+      response.status(200).json(data);
+  
+    } catch (error) {
+      console.error('Error updating form:', error);
+      response.status(500).json({ message: 'Server error', error });
+    }
+  });
+
+
+// GET FORM BY ID 
+app.get('/getforms/:id', async (req, res) => {
+    try {
+      const formId = req.params.id; 
+      const formdata = await form.findById(formId);
+      if (!formdata) {
+        return res.status(404).json({ message: 'Form not found' });
+      }
+      res.status(200).json(formdata);
+    } catch (error) {
+      console.error('Error fetching form data:', error);
+      res.status(500).json({ message: 'Server error', error });
+    }
+  });
 
 app.listen(1111, () => {
     console.log("Express connected!!!");

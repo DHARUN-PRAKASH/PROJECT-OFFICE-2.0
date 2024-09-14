@@ -18,6 +18,7 @@ import {
   getEmployee,
   getVehicle,
   getFyYear,
+  deleteFormById 
 } from './axios';
 import Dash from './dash';
 import { PDFDocument, rgb } from 'pdf-lib';
@@ -25,13 +26,16 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import PreviewRoundedIcon from '@mui/icons-material/PreviewRounded';
 import PictureAsPdfRoundedIcon from '@mui/icons-material/PictureAsPdfRounded';
-import IconButton from '@mui/material/IconButton';
 import Dial from './speeddial';
 import { DesktopDatePicker } from '@mui/x-date-pickers/DesktopDatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { format } from 'date-fns';
 import ClearIcon from '@mui/icons-material/Clear';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import IconButton from '@mui/material/IconButton';
+import { useNavigate } from 'react-router-dom';
 
 
 
@@ -66,6 +70,8 @@ const Table = () => {
   const [employees, setEmployees] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [fyYears, setFyYears] = useState([]);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchDropdownData = async () => {
@@ -198,12 +204,12 @@ const Table = () => {
   };
 
   const columns = [
-    { field: 'id', headerName:<b> S.No</b>, flex: 0.5, headerClassName: 'super-app-theme--header' },
+    { field: 'id', headerName: <b>S.No</b>, flex: 0.5, headerClassName: 'super-app-theme--header' },
     { field: 'vehicleId', headerName: <b>VEHICLE ID</b>, flex: 1, headerClassName: 'super-app-theme--header' },
     { field: 'date', headerName: <b>DATE</b>, flex: 1, headerClassName: 'super-app-theme--header' },
     { field: 'headCategory', headerName: <b>HEAD CATEGORY</b>, flex: 1.5, headerClassName: 'super-app-theme--header' },
     { field: 'subCategory', headerName: <b>SUB CATEGORY</b>, flex: 1.5, headerClassName: 'super-app-theme--header' },
-    { field: 'particulars', headerName: <b>PARTICULARS</b>, flex:1.5 , headerClassName: 'super-app-theme--header' },
+    { field: 'particulars', headerName: <b>PARTICULARS</b>, flex: 1.5, headerClassName: 'super-app-theme--header' },
     { field: 'amount', headerName: <b>AMOUNT</b>, flex: 1, headerClassName: 'super-app-theme--header' },
     {
       field: 'pdfLink',
@@ -227,13 +233,27 @@ const Table = () => {
       flex: 0.7,
       headerClassName: 'super-app-theme--header',
       renderCell: (params) => (
-        <IconButton 
-          onClick={() => handlePdfGeneration(params.row)}
-        >
+        <IconButton onClick={() => handlePdfGeneration(params.row)}>
           <PreviewRoundedIcon />
         </IconButton>
       ),
-    }
+    },
+    {
+      field: 'actions',
+      headerName: <b>ACTIONS</b>,
+      flex: 1,
+      headerClassName: 'super-app-theme--header',
+      renderCell: (params) => (
+        <div>
+          <IconButton onClick={() => handleEdit(params.row.objectId)}> {/* Pass objectId to handleEdit */}
+            <EditIcon />
+          </IconButton>
+          <IconButton onClick={() => handleDelete(params.row.objectId)} color="error">
+            <DeleteIcon />
+          </IconButton>
+        </div>
+      ),
+    },
   ];
 
   const handleClear = () => {
@@ -249,7 +269,21 @@ const Table = () => {
       date: null,
     });
   };
+  
+  const handleDelete = async (id) => {
+    try {
+      await deleteFormById(id);
+      setRows((prevRows) => prevRows.filter((row) => row.objectId !== id));
+    } catch (error) {
+      console.error('Failed to delete the form:', error);
+    }
+  };
 
+  const handleEdit = (objectId) => {
+    console.log(`Edit row with ID: ${objectId}`);
+    navigate(`/update/${objectId}`);
+  };
+  
   return (
     <div>
       <Dash />
@@ -262,7 +296,7 @@ const Table = () => {
             <Grid item xs={12} md={4}>
               <Autocomplete
                 options={vehicles.map((v) => v.vehicle_id)}
-                renderInput={(params) => <TextField {...params} label="Vehicle ID" />}
+                renderInput={(params) => <TextField variant="standard" {...params} label="Vehicle ID" />}
                 value={filters.vehicleId}
                 onChange={(e, value) => handleFilterChange(e, value, 'vehicleId')}
               />
@@ -270,7 +304,7 @@ const Table = () => {
             <Grid item xs={12} md={4}>
               <Autocomplete
                 options={headCats.map((hc) => hc.head_cat_name)}
-                renderInput={(params) => <TextField {...params} label="Head Category" />}
+                renderInput={(params) => <TextField {...params} variant="standard" label="Head Category" />}
                 value={filters.headCategory}
                 onChange={(e, value) => handleFilterChange(e, value, 'headCategory')}
               />
@@ -278,7 +312,7 @@ const Table = () => {
             <Grid item xs={12} md={4}>
               <Autocomplete
                 options={subCats.map((sc) => sc.sub_cat_name)}
-                renderInput={(params) => <TextField {...params} label="Sub Category" />}
+                renderInput={(params) => <TextField {...params} variant="standard" label="Sub Category" />}
                 value={filters.subCategory}
                 onChange={(e, value) => handleFilterChange(e, value, 'subCategory')}
               />
@@ -288,6 +322,7 @@ const Table = () => {
                 type="number"
                 name="amount"
                 label="Amount"
+                variant="standard"
                 value={filters.amount}
                 onChange={(e) => handleFilterChange(e, e.target.value, 'amount')}
                 fullWidth
@@ -296,7 +331,7 @@ const Table = () => {
             <Grid item xs={12} md={4}>
               <Autocomplete
                 options={fyYears.map((fy) => fy.fy_name)}
-                renderInput={(params) => <TextField {...params} label="Financial Year" />}
+                renderInput={(params) => <TextField {...params} variant="standard" label="Financial Year" />}
                 value={filters.fyYear}
                 onChange={(e, value) => handleFilterChange(e, value, 'fyYear')}
               />
@@ -304,7 +339,7 @@ const Table = () => {
             <Grid item xs={12} md={4}>
               <Autocomplete
                 options={months.map((m) => m.month_name)}
-                renderInput={(params) => <TextField {...params} label="Month" />}
+                renderInput={(params) => <TextField {...params} variant="standard" label="Month" />}
                 value={filters.month}
                 onChange={(e, value) => handleFilterChange(e, value, 'month')}
               />
@@ -312,7 +347,7 @@ const Table = () => {
             <Grid item xs={12} md={4}>
               <Autocomplete
                 options={employees.map((emp) => emp.emp_id)}
-                renderInput={(params) => <TextField {...params} label="Employee ID" />}
+                renderInput={(params) => <TextField {...params} variant="standard" label="Employee ID" />}
                 value={filters.employeeId}
                 onChange={(e, value) => handleFilterChange(e, value, 'employeeId')}
               />
@@ -322,6 +357,7 @@ const Table = () => {
                 type="text"
                 name="particulars"
                 label="Particulars"
+                variant="standard"
                 value={filters.particulars}
                 onChange={(e) => handleFilterChange(e, e.target.value, 'particulars')}
                 fullWidth
@@ -334,7 +370,7 @@ const Table = () => {
       inputFormat="MM/dd/yyyy"
       value={filters.date || null} 
       onChange={(newValue) => handleFilterChange(null, newValue, 'date')}
-      renderInput={(params) => <TextField {...params} fullWidth />}
+      renderInput={(params) => <TextField {...params}  fullWidth />}
     />                          
   </LocalizationProvider>
   <Button 

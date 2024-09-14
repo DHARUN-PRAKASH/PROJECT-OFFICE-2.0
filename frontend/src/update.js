@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { TextField, Button, Autocomplete, Grid, Box, Typography, Chip, Snackbar, Alert } from '@mui/material';
 import { useDropzone } from 'react-dropzone';
-import { postform, getHeadCat, getSubCat, getMonth, getDepartment, getEmployee, getVehicle, getFyYear } from './axios';
+import {getFormById, postform, getHeadCat, getSubCat, getMonth, getDepartment, getEmployee, getVehicle, getFyYear } from './axios';
 import Dash from './dash';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DesktopDatePicker } from '@mui/x-date-pickers/DesktopDatePicker';
 import { format } from 'date-fns';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate,useParams } from 'react-router-dom';
 
-const Form = ({ handleClose }) => {
+const Update = ({ handleClose }) => {
+  const { id } = useParams(); 
   const navigate = useNavigate();
 
   const [fy_year, setFyYear] = useState(null);
@@ -41,6 +42,100 @@ const Form = ({ handleClose }) => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+
+    // Fetch data for dropdowns and lists
+    useEffect(() => {
+      const fetchData = async () => {
+        try {
+          const headCatData = await getHeadCat();
+          const filteredHeadCats = headCatData.filter(cat => cat.head_cat_status === true);
+          setHeadCats(filteredHeadCats);
+  
+          const subCatData = await getSubCat();
+          const filteredSubCats = subCatData.filter(subCat => subCat.sub_cat_status === true);
+          setSubCats(filteredSubCats);
+  
+          const monthData = await getMonth();
+          const filteredMonths = monthData.filter(month => month.month_id === true);
+          setMonths(filteredMonths);
+  
+          const departmentData = await getDepartment();
+          setDepartmentsList(departmentData);
+  
+          const employeeData = await getEmployee();
+          setEmployees(employeeData);
+  
+          const vehicleData = await getVehicle();
+          setVehiclesList(vehicleData);
+  
+          const fyYearData = await getFyYear();
+          const filteredFyYears = fyYearData.filter(fyYear => fyYear.fy_id === true);
+          setFyYears(filteredFyYears);
+        } catch (error) {
+          console.error('Error fetching data:', error);
+        }
+      };
+  
+      fetchData();
+    }, []);
+  
+    // Fetch form details by ID from the URL and populate the fields
+    useEffect(() => {
+      const fetchFormDetails = async () => {
+        if (id) {
+          try {
+            const formDetails = await getFormById(id); // Fetch data by object ID
+            console.log('Fetched form details:', formDetails); // Debugging log to inspect the full object
+    
+            // Set the correct state based on the structure of the formDetails object
+            setFyYear(formDetails.fy_year || null); // If fy_year exists, otherwise null
+            console.log('FY Year:', formDetails.fy_year);
+    
+            setMonth(formDetails.month || null); // If month exists, otherwise null
+            console.log('Month:', formDetails.month);
+    
+            // Handle head_cat as array (if exists) or set it to null
+            setHeadCat(formDetails.head_cat?.length ? formDetails.head_cat[0] : null); 
+            console.log('Head Category:', formDetails.head_cat);
+    
+            // Handle sub_cat as array (if exists) or set it to null
+            setSubCat(formDetails.sub_cat?.length ? formDetails.sub_cat[0] : null); 
+            console.log('Sub Category:', formDetails.sub_cat);
+    
+            // Ensure the date is properly parsed as a JavaScript Date object
+            setDate(formDetails.date ? new Date(formDetails.date) : null);
+            console.log('Date:', formDetails.date);
+    
+            // Handle received_by as array, or set an empty array if none
+            setReceivedBy(formDetails.received_by || []); 
+            console.log('Received By:', formDetails.received_by);
+    
+            setParticulars(formDetails.particulars || '');
+            setBillNo(formDetails.bill_no || '');
+    
+            // Handle departments (if it is null, set null) 
+            setDepartments(formDetails.departments || null); 
+            console.log('Departments:', formDetails.departments);
+    
+            setAmount(formDetails.amount || '');
+    
+            // Handle vehicles as array (if exists) or set it to null
+            setVehicles(formDetails.vehicles?.length ? formDetails.vehicles[0] : null);
+            console.log('Vehicles:', formDetails.vehicles);
+    
+            // Handle uploads (files)
+            setFiles(formDetails.uploads || []);
+            console.log('Files:', formDetails.uploads);
+          } catch (error) {
+            console.error('Error fetching form details:', error);
+          }
+        }
+      };
+    
+      fetchFormDetails();
+    }, [id]); // Runs whenever the ID changes
+    
+    
 
   useEffect(() => {
     const fetchData = async () => {
@@ -513,4 +608,4 @@ const Form = ({ handleClose }) => {
   );
 };
 
-export default Form;
+export default Update;

@@ -41,6 +41,18 @@ export const postform = async (formData, files) => {
   }
 };
 
+// DELETE FORM 
+
+export const deleteFormById = async (id) => {
+  try {
+    const response = await axios.delete(`http://localhost:1111/erase/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting form:', error);
+    throw error;
+  }
+};
+
 export const getHeadCat = async () => {
   const response = await axios.get('http://localhost:1111/gethead_cat');
   return response.data;
@@ -262,4 +274,42 @@ export const activateMonth = (monthName) => {
 // Lock month
 export const lockMonth = (monthName) => {
   return axios.post(`http://localhost:1111/setmonthfalse`, { month_name: monthName });
+};
+
+// GET FORM BY ID 
+
+export const getFormById = async (formId) => {
+  try {
+    const response = await axios.get(`http://localhost:1111/getforms/${formId}`);
+    console.log('Form fetched successfully:', response.data);
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      console.error('Error response:', error.response.data);
+    } else if (error.request) {
+      console.error('No response received:', error.request);
+    } else {
+      console.error('Error during the request setup:', error.message);
+    }
+    throw error;
+  }
+};
+
+// MODIFY 
+
+export const modifyForm = async (formData) => {
+  try {
+    const response = await axios.put('http://localhost:1111/modify', formData);
+    console.log('Form modified successfully:', response.data);
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      console.error('Error response:', error.response.data);
+    } else if (error.request) {
+      console.error('No response received:', error.request);
+    } else {
+      console.error('Error during the request setup:', error.message);
+    }
+    throw error;
+  }
 };
