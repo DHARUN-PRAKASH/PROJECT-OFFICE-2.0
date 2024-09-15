@@ -53,8 +53,12 @@ const ConsolidateAndSummary = () => {
     }
   
     try {
-      const data = await getFormsByFyYearAndMonth(summaryFyYear, summaryMonth);
+      const fyYearName = summaryFyYear.fy_name;
+      const monthName = summaryMonth.month_name;
+  
+      const data = await getFormsByFyYearAndMonth(fyYearName, monthName);
       console.log('Summary Data:', data);
+      console.log(fyYearName, monthName);
   
       // Create a new PDF document for summary
       const summaryDoc = new jsPDF();
@@ -105,8 +109,12 @@ const ConsolidateAndSummary = () => {
     }
   
     try {
-      const data = await getFormsByFyYearAndMonth(consolidateFyYear, consolidateMonth);
+      const fyYearName = summaryFyYear.fy_name;
+      const monthName = summaryMonth.month_name;
+  
+      const data = await getFormsByFyYearAndMonth(fyYearName, monthName);
       console.log('Consolidation Data:', data);
+      console.log(fyYearName, monthName);
   
       // Create a new PDF document for consolidation
       const pdfDoc = await PDFDocument.create();
@@ -177,29 +185,22 @@ const ConsolidateAndSummary = () => {
           ['Amount:', item.amount || 'N/A'],
           [
             'Head Cat:',
-            item.head_cat && item.head_cat.length > 0
-              ? item.head_cat.map(cat => cat.head_cat_name).join(', ')
-              : 'N/A',
+            item.head_cat ? item.head_cat.head_cat_name : 'N/A'
           ],
           [
             'Sub Cat:',
-            item.sub_cat && item.sub_cat.length > 0
-              ? item.sub_cat.map(sub => sub.sub_cat_name).join(', ')
-              : 'N/A',
+            item.sub_cat ? item.sub_cat.sub_cat_name : 'N/A'
           ],
           [
             'Departments:',
-            item.departments && item.departments.length > 0
-              ? item.departments.map(dept => dept.dept_full_name).join(', ')
-              : 'N/A',
+            item.departments ? item.departments.dept_full_name : 'N/A'
           ],
           [
             'Vehicles:',
-            item.vehicles && Array.isArray(item.vehicles) && item.vehicles.length > 0
-              ? item.vehicles.map(vehicle => vehicle.vehicle_name).join(', ')
-              : 'N/A',
+            item.vehicles ? item.vehicles.vehicle_name : 'N/A'
           ],
         ];
+        
   
         itemDoc.setFontSize(12);
         itemDoc.setTextColor(50, 50, 50);
@@ -310,7 +311,7 @@ const ConsolidateAndSummary = () => {
       <Autocomplete
         style={{ marginTop: '20px' }}
         options={fyYearOptions}
-        getOptionLabel={(option) => option}
+        getOptionLabel={(option) => option.fy_name}
         value={summaryFyYear}
         onChange={(event, newValue) => setSummaryFyYear(newValue)}
         renderInput={(params) => <TextField {...params} label="Fiscal Year" variant="outlined" />}
@@ -318,7 +319,7 @@ const ConsolidateAndSummary = () => {
       <Autocomplete
         style={{ marginTop: '15px' }}
         options={monthOptions}
-        getOptionLabel={(option) => option}
+        getOptionLabel={(option) =>  option.month_name}
         value={summaryMonth}
         onChange={(event, newValue) => setSummaryMonth(newValue)}
         renderInput={(params) => <TextField {...params} label="Month" variant="outlined" />}
@@ -347,7 +348,7 @@ const ConsolidateAndSummary = () => {
       <Autocomplete
         style={{ marginTop: '20px' }}
         options={fyYearOptions}
-        getOptionLabel={(option) => option}
+        getOptionLabel={(option) => option.fy_name}
         value={consolidateFyYear}
         onChange={(event, newValue) => setConsolidateFyYear(newValue)}
         renderInput={(params) => <TextField {...params} label="Fiscal Year" variant="outlined" />}
@@ -355,7 +356,7 @@ const ConsolidateAndSummary = () => {
       <Autocomplete
         style={{ marginTop: '15px' }}
         options={monthOptions}
-        getOptionLabel={(option) => option}
+        getOptionLabel={(option) =>  option.month_name}
         value={consolidateMonth}
         onChange={(event, newValue) => setConsolidateMonth(newValue)}
         renderInput={(params) => <TextField {...params} label="Month" variant="outlined" />}

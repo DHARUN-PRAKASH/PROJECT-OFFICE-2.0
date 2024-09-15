@@ -162,6 +162,8 @@ app.post('/postform', upload.array('files'), async (req, res) => {
         const { fy_year, month, head_cat, sub_cat, date, received_by, particulars, bill_no, departments, amount, vehicles } = req.body;
 
         // Convert JSON strings back to objects
+        const parsedFy_year = JSON.parse(fy_year || '[]');
+        const parsedMonth = JSON.parse(month || '[]');
         const parsedHeadCat = JSON.parse(head_cat || '[]');
         const parsedSubCat = JSON.parse(sub_cat || '[]');
         const parsedReceivedBy = JSON.parse(received_by || '[]');
@@ -181,10 +183,10 @@ app.post('/postform', upload.array('files'), async (req, res) => {
         // Collect original filenames to store in the 'uploads' array
         const uploadedFiles = req.files.map(file => file.originalname);
 
-        // Save form data along with the output file name and uploaded file names
+        // Save form data along with the output file name and uploaded file name
         const newForm = new form({
-            fy_year,
-            month,
+            fy_year : parsedFy_year,
+            month : parsedMonth,
             head_cat: parsedHeadCat,
             sub_cat: parsedSubCat,
             date,
@@ -222,15 +224,20 @@ app.get('/getforms', async (req, res) => {
 app.get('/fy_year_month/:fy_year/:month', async (req, res) => {
     const { fy_year, month } = req.params;
     try {
-        const found = await form.find({ 
-            fy_year: { '$eq': fy_year }, 
-            month: { '$eq': month } 
+        // Find the forms where fy_name and month_name match the request params
+        const found = await form.find({
+            'fy_year.fy_name': Number(fy_year),
+            'month.month_name': month
         });
+
+        // Return the found forms
         res.json(found);
     } catch (error) {
+        // Handle errors and respond with an error message
         res.status(500).json({ error: 'Failed to retrieve forms' });
     }
 });
+
 
 // FORM FY YEAR DROP DOWN 
 
@@ -307,9 +314,10 @@ app.get('/particulars/:given', async (req, res) => {
     }
 });
 
+// Get form by various filters FOR FY YEAR 
 app.get('/fy_year/:given', async (req, res) => {
     try {
-        const found = await form.find({ "fy_year": { '$eq': req.params.given } });
+        const found = await form.find({ "fy_year.fy_name": { '$eq': Number(req.params.given) } });
         res.json(found);
     } catch (error) {
         res.status(500).json({ error: 'Failed to retrieve forms' });
@@ -318,7 +326,7 @@ app.get('/fy_year/:given', async (req, res) => {
 
 app.get('/month/:given', async (req, res) => {
     try {
-        const found = await form.find({ "month": { '$eq': req.params.given } });
+        const found = await form.find({ "month.month_name": { '$eq': req.params.given } });
         res.json(found);
     } catch (error) {
         res.status(500).json({ error: 'Failed to retrieve forms' });
@@ -608,34 +616,82 @@ app.delete('/erase/:id', async (request, response) => {
 
 
 // MODIFY FORM
-
-app.put('/modify', async (request, response) => {
+app.put('/modify', upload.array('files'), async (req, res) => {
     try {
-      // Check if the request body contains an ID
-      if (!request.body._id) {
-        return response.status(400).json({ message: 'ID is required for updating the form.' });
-      }
-  
-      // Find and update the form by ID
-      const data = await form.findByIdAndUpdate(
-        request.body._id, // The ID to update
-        request.body,     // The updated data
-        { new: true, runValidators: true } // Return the updated document and run schema validators
-      );
-  
-      // Check if the form was found and updated
-      if (!data) {
-        return response.status(404).json({ message: 'Form not found.' });
-      }
-  
-      // Return the updated form data
-      response.status(200).json(data);
-  
+        // Extract form fields from req.body
+        const { _id, fy_year, month, head_cat, sub_cat, date, received_by, particulars, bill_no, departments, amount, vehicles } = req.body;
+
+        // Function to safely parse JSON fields
+        const safeJsonParse = (data) => {
+            try {
+                return JSON.parse(data);
+            } catch (error) {
+                return []; // Return an empty array or handle as appropriate
+            }
+        };
+
+        // Parse JSON strings
+        const parsedFy_year = safeJsonParse(fy_year || '[]');
+        const parsedMonth = safeJsonParse(month || '[]');
+        const parsedHeadCat = safeJsonParse(head_cat || '[]');
+        const parsedSubCat = safeJsonParse(sub_cat || '[]');
+        const parsedReceivedBy = safeJsonParse(received_by || '[]');
+        const parsedDepartments = safeJsonParse(departments || '[]');
+        const parsedVehicles = safeJsonParse(vehicles || '[]');
+
+        // Check if the request body contains an ID
+        if (!_id) {
+            return res.status(400).json({ message: 'ID is required for updating the form.' });
+        }
+
+        // Process files (e.g., merge PDFs)
+        let outputFileName = null;
+        if (req.files && req.files.length > 0) {
+            const billNumber = bill_no || 'unknown';
+            const todayDate = date || new Date().toISOString().split('T')[0];
+            const randomNumber = Math.floor(Math.random() * 1000);
+            outputFileName = `${billNumber}_${todayDate}_${randomNumber}.pdf`;
+            const outputPath = path.join(__dirname, 'public', 'merged_pdfs', outputFileName);
+
+            await mergeFilesToPdf(req.files, outputPath);
+        }
+
+        // Find and update the form by ID
+        const updatedForm = await form.findByIdAndUpdate(
+            _id,
+            {
+                fy_year: parsedFy_year,
+                month: parsedMonth,
+                head_cat: parsedHeadCat,
+                sub_cat: parsedSubCat,
+                date,
+                received_by: parsedReceivedBy,
+                particulars,
+                bill_no,
+                departments: parsedDepartments,
+                amount,
+                vehicles: parsedVehicles,
+                files: outputFileName ? outputFileName : undefined, // Update the files field only if there is a new file
+                uploads: req.files ? req.files.map(file => file.originalname) : undefined // Update uploads field if files are uploaded
+            },
+            { new: true, runValidators: true } // Return the updated document and run schema validators
+        );
+
+        // Check if the form was found and updated
+        if (!updatedForm) {
+            return res.status(404).json({ message: 'Form not found.' });
+        }
+
+        // Return the updated form data
+        res.status(200).json(updatedForm);
+
     } catch (error) {
-      console.error('Error updating form:', error);
-      response.status(500).json({ message: 'Server error', error });
+        console.error('Error updating form:', error);
+        res.status(500).json({ message: 'Server error', error });
     }
-  });
+});
+
+  
 
 
 // GET FORM BY ID 

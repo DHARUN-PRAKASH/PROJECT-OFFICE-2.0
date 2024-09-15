@@ -297,18 +297,45 @@ export const getFormById = async (formId) => {
 
 // MODIFY 
 
-export const modifyForm = async (formData) => {
+export const modifyForm = async (formData, files) => {
   try {
-    const response = await axios.put('http://localhost:1111/modify', formData);
-    console.log('Form modified successfully:', response.data);
+    const data = new FormData();
+
+    // Append form fields
+    for (const key in formData) {
+      if (formData.hasOwnProperty(key)) {
+        const value = formData[key];
+        // Check if the value is an array and stringify it
+        if (Array.isArray(value)) {
+          data.append(key, JSON.stringify(value));
+        } else {
+          data.append(key, value);
+        }
+      }
+    }
+
+    // Append files only if files exist
+    if (files && files.length > 0) {
+      files.forEach((file) => {
+        data.append('files', file);
+      });
+    }
+
+    // Put form data to the server
+    const response = await axios.put('http://localhost:1111/modify', data, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+
     return response.data;
   } catch (error) {
     if (error.response) {
-      console.error('Error response:', error.response.data);
+      console.error('Error response:', error.response.data); // Backend returned error response
     } else if (error.request) {
-      console.error('No response received:', error.request);
+      console.error('No response received:', error.request); // Request made but no response
     } else {
-      console.error('Error during the request setup:', error.message);
+      console.error('Error during the request setup:', error.message); // Error in setting up the request
     }
     throw error;
   }

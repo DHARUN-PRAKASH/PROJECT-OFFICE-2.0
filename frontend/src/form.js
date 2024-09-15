@@ -147,8 +147,8 @@ const Form = ({ handleClose }) => {
     const formattedDate = date ? format(new Date(date), 'yyyy-MM-dd') : '';
 
     const serializedData = {
-      fy_year: fy_year?.fy_name || '',
-      month: month?.month_name || '',
+      fy_year: fy_year ?  JSON.stringify(fy_year) : null ,
+      month: month ? JSON.stringify(month) : null,
       head_cat: head_cat ? JSON.stringify(head_cat) : null,
       sub_cat: sub_cat ? JSON.stringify(sub_cat) : null,
       date: formattedDate,

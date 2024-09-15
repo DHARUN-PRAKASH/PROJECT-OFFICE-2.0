@@ -134,19 +134,20 @@ const Table = () => {
         const formattedData = data.map((form, index) => ({
           objectId: form._id,
           id: index + 1,
-          vehicleId: form.vehicles?.map(vehicle => vehicle.vehicle_id).join(', ') || 'N/A',
+          vehicleId: form.vehicles?.vehicle_id || 'N/A',
           date: form.date,
-          headCategory: form.head_cat?.map(cat => cat.head_cat_name).join(', ') || 'N/A',
-          subCategory: form.sub_cat?.map(cat => cat.sub_cat_name).join(', ') || 'N/A',
+          headCategory: form.head_cat?.head_cat_name || 'N/A',
+          subCategory: form.sub_cat?.sub_cat_name || 'N/A',
           particulars: form.particulars,
           amount: form.amount,
           pdfLink: form.files,
-          fyYear: form.fy_year,
-          month: form.month,
+          fyYear: form.fy_year?.fy_name || 'N/A',
+          month: form.month?.month_name || 'N/A',
           employeeId: form.received_by?.map(emp => emp.emp_id).join(', ') || 'N/A',
           departments: form.departments?.map(dept => dept.dept_full_name).join(', ') || 'N/A',
           bill_no: form.bill_no || 'N/A'
         }));
+        
         
         setRows(formattedData);
       } catch (error) {
@@ -288,10 +289,11 @@ const Table = () => {
     <div>
       <Dash />
       <div style={{ padding: '50px', boxShadow: '0px 0px 10px rgba(0, 0, 0, 0.1)', marginTop: '50px' }}>
+
+        <Paper style={{ padding: 20, marginBottom: 20 }}>
         <Typography variant="h4" align="center" sx={{ backgroundColor: '#32348c', color: 'white', borderRadius: '5px', marginBottom: '10px' }}>
           <b>YOUR REPORT</b>
         </Typography>
-        <Paper style={{ padding: 20, marginBottom: 20 }}>
           <Grid container spacing={3}>
             <Grid item xs={12} md={4}>
               <Autocomplete
@@ -384,8 +386,8 @@ const Table = () => {
             </Grid>
             
           </Grid>
-        </Paper>
-        <Box sx={{ height: 600, width: '100%' }}>
+
+        <Box sx={{ height: 600, width: '100%',marginTop:'15px' }}>
           <DataGrid
             rows={rows}
             columns={columns}
@@ -400,6 +402,7 @@ const Table = () => {
             }}
           />
         </Box>
+        </Paper>
       </div>
       <Dial/>
     </div>
