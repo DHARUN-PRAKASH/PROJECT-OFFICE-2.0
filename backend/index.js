@@ -246,12 +246,18 @@ app.get('/getfyyearoption', async (req, res) => {
         // Fetch only the fy_year field from the documents
         const data = await form.find({}, { fy_year: 1, _id: 0 }).exec();
 
-        // Extract fy_year values and remove duplicates
-        const fyYears = data.map(doc => doc.fy_year);
-        const uniqueFyYears = [...new Set(fyYears)];
+        // Extract fy_year values and remove duplicates based on fy_name
+        const uniqueFyYears = Array.from(
+            new Map(
+                data.map(doc => [doc.fy_year.fy_name, doc.fy_year])
+            ).values()
+        );
 
-        // Map unique fy_year values to the desired format
-        const formattedData = uniqueFyYears.map(year => ({ fy_year: year }));
+        // Sort unique fy_year values by fy_name in ascending order
+        const sortedFyYears = uniqueFyYears.sort((a, b) => a.fy_name - b.fy_name);
+
+        // Map sorted fy_year values to the desired format
+        const formattedData = sortedFyYears.map(year => ({ fy_year: year }));
 
         // Return the formatted data as a JSON array
         res.json(formattedData);
@@ -260,22 +266,29 @@ app.get('/getfyyearoption', async (req, res) => {
     }
 });
 
+
+
 // FORM MONTH DROP DOWN 
 
 app.get('/getmonthoption', async (req, res) => {
     try {
         // Define the order of months
+        const monthOrder = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        ];
 
         // Fetch only the month field from the documents
         const data = await form.find({}, { month: 1, _id: 0 }).exec();
 
-        // Extract month values and remove duplicates
-        const months = data.map(doc => doc.month);
-        const uniqueMonths = [...new Set(months)];
+        // Extract unique months based on the month_name field
+        const uniqueMonths = Array.from(
+            new Map(data.map(doc => [doc.month.month_name, doc.month])).values()
+        );
 
         // Sort unique months based on the predefined order
         const sortedMonths = uniqueMonths.sort((a, b) => {
-            return monthOrder.indexOf(a) - monthOrder.indexOf(b);
+            return monthOrder.indexOf(a.month_name) - monthOrder.indexOf(b.month_name);
         });
 
         // Map sorted months to the desired format
@@ -287,11 +300,6 @@ app.get('/getmonthoption', async (req, res) => {
         res.status(500).json({ error: 'Failed to retrieve months' });
     }
 });
-
-
-
-
-
 
 
 

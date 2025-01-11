@@ -144,7 +144,7 @@ const Table = () => {
           fyYear: form.fy_year?.fy_name || 'N/A',
           month: form.month?.month_name || 'N/A',
           employeeId: form.received_by?.map(emp => emp.emp_id).join(', ') || 'N/A',
-          departments: form.departments?.map(dept => dept.dept_full_name).join(', ') || 'N/A',
+          departments: form.departments?.dept_full_name || 'N/A',
           bill_no: form.bill_no || 'N/A'
         }));
         
