@@ -219,96 +219,96 @@ const Table = () => {
 
   const isAdmin = sessionStorage.getItem('admin') === 'true';
 
-const columns = [
-  {
-    field: "id",
-    headerName: <b>S.No</b>,
-    flex: 0.5,
-    headerClassName: "super-app-theme--header",
-  },
-  {
-    field: "vehicleId",
-    headerName: <b>VEHICLE ID</b>,
-    flex: 1,
-    headerClassName: "super-app-theme--header",
-  },
-  {
-    field: "date",
-    headerName: <b>DATE</b>,
-    flex: 1,
-    headerClassName: "super-app-theme--header",
-  },
-  {
-    field: "headCategory",
-    headerName: <b>HEAD CATEGORY</b>,
-    flex: 1.5,
-    headerClassName: "super-app-theme--header",
-  },
-  {
-    field: "subCategory",
-    headerName: <b>SUB CATEGORY</b>,
-    flex: 1.5,
-    headerClassName: "super-app-theme--header",
-  },
-  {
-    field: "particulars",
-    headerName: <b>PARTICULARS</b>,
-    flex: 1.5,
-    headerClassName: "super-app-theme--header",
-  },
-  {
-    field: "amount",
-    headerName: <b>AMOUNT</b>,
-    flex: 1,
-    headerClassName: "super-app-theme--header",
-  },
-  {
-    field: "pdfLink",
-    headerName: <b>PDF</b>,
-    flex: 0.5,
-    headerClassName: "super-app-theme--header",
-    renderCell: (params) => (
-      <IconButton
-        component="a"
-        href={`http://localhost:1111/merged_pdfs/${params.value}`}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        <PictureAsPdfRoundedIcon />
-      </IconButton>
-    ),
-  },
-  {
-    field: "generatePdf",
-    headerName: <b>GEN PDF</b>,
-    flex: 0.7,
-    headerClassName: "super-app-theme--header",
-    renderCell: (params) => (
-      <IconButton onClick={() => handlePdfGeneration(params.row)}>
-        <PreviewRoundedIcon />
-      </IconButton>
-    ),
-  },
-  isAdmin && {
-    field: "actions",
-    headerName: <b>ACTIONS</b>,
-    flex: 1,
-    headerClassName: "super-app-theme--header",
-    renderCell: (params) => (
-      <div>
-        <IconButton onClick={() => handleEdit(params.row.objectId)}>
-          <EditIcon />
-        </IconButton>
+  const columns = [
+    {
+      field: "id",
+      headerName: <b>S.No</b>,
+      flex: 0.5,
+      headerClassName: "super-app-theme--header",
+    },
+    {
+      field: "vehicleId",
+      headerName: <b>VEHICLE ID</b>,
+      flex: 1,
+      headerClassName: "super-app-theme--header",
+    },
+    {
+      field: "date",
+      headerName: <b>DATE</b>,
+      flex: 1,
+      headerClassName: "super-app-theme--header",
+    },
+    {
+      field: "headCategory",
+      headerName: <b>HEAD CATEGORY</b>,
+      flex: 1.5,
+      headerClassName: "super-app-theme--header",
+    },
+    {
+      field: "subCategory",
+      headerName: <b>SUB CATEGORY</b>,
+      flex: 1.5,
+      headerClassName: "super-app-theme--header",
+    },
+    {
+      field: "particulars",
+      headerName: <b>PARTICULARS</b>,
+      flex: 1.5,
+      headerClassName: "super-app-theme--header",
+    },
+    {
+      field: "amount",
+      headerName: <b>AMOUNT</b>,
+      flex: 1,
+      headerClassName: "super-app-theme--header",
+    },
+    {
+      field: "pdfLink",
+      headerName: <b>PDF</b>,
+      flex: 0.5,
+      headerClassName: "super-app-theme--header",
+      renderCell: (params) => (
         <IconButton
-          onClick={() => handleDelete(params.row.objectId)}
-          color="error"
+          component="a"
+          href={`http://localhost:1111/merged_pdfs/${params.value}`}
+          target="_blank"
+          rel="noopener noreferrer"
         >
-          <DeleteIcon />
+          <PictureAsPdfRoundedIcon />
         </IconButton>
-      </div>
-    ),
-  },
-].filter(Boolean); // Remove undefined columns if not admin
+      ),
+    },
+    {
+      field: "generatePdf",
+      headerName: <b>GEN PDF</b>,
+      flex: 0.7,
+      headerClassName: "super-app-theme--header",
+      renderCell: (params) => (
+        <IconButton onClick={() => handlePdfGeneration(params.row)}>
+          <PreviewRoundedIcon />
+        </IconButton>
+      ),
+    },
+    isAdmin && {
+      field: "actions",
+      headerName: <b>ACTIONS</b>,
+      flex: 1,
+      headerClassName: "super-app-theme--header",
+      renderCell: (params) => (
+        <div>
+          <IconButton onClick={() => handleEdit(params.row.objectId)}>
+            <EditIcon />
+          </IconButton>
+          <IconButton
+            onClick={() => handleDelete(params.row.objectId)}
+            color="error"
+          >
+            <DeleteIcon />
+          </IconButton>
+        </div>
+      ),
+    },
+  ].filter(Boolean); // Remove undefined columns if not admin
 
 
   const handleClear = () => {
@@ -450,20 +450,26 @@ const columns = [
             </Grid>
             <Grid item xs={12} md={4}>
               <Autocomplete
-                options={employees.map((emp) => emp.emp_id)}
+                options={employees}
+                getOptionLabel={(option) =>
+                  option
+                    ? `${option.emp_id || ''} / ${option.emp_name || ''} / ${option.emp_designation || ''}`
+                    : ''
+                }
                 renderInput={(params) => (
                   <TextField
                     {...params}
                     variant="standard"
-                    label="Employee ID"
+                    label="Employee"
                   />
                 )}
-                value={filters.employeeId}
+                value={employees.find(emp => emp.emp_id === filters.employeeId) || null}
                 onChange={(e, value) =>
-                  handleFilterChange(e, value, "employeeId")
+                  handleFilterChange(e, value?.emp_id || null, "employeeId")
                 }
               />
             </Grid>
+
             <Grid item xs={12} md={4}>
               <TextField
                 type="text"

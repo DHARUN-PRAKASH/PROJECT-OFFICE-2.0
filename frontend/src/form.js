@@ -122,7 +122,7 @@ const Form = ({ handleClose }) => {
     if ((!vehicles || vehicles.length === 0) && !isVehicleDisabled) {
       errors.vehicles = 'At least one vehicle is required';
     }
-    
+
 
     setErrors(errors);
 
@@ -152,7 +152,7 @@ const Form = ({ handleClose }) => {
     const formattedDate = date ? format(new Date(date), 'dd-MM-yyyy') : '';
 
     const serializedData = {
-      fy_year: fy_year ?  JSON.stringify(fy_year) : null ,
+      fy_year: fy_year ? JSON.stringify(fy_year) : null,
       month: month ? JSON.stringify(month) : null,
       head_cat: head_cat ? JSON.stringify(head_cat) : null,
       sub_cat: sub_cat ? JSON.stringify(sub_cat) : null,
@@ -237,8 +237,8 @@ const Form = ({ handleClose }) => {
             borderRadius: '50px'
           }}
         >
-          <Typography variant="h4" component="h2" gutterBottom 
-          style={{ backgroundColor: '#32348c', color: '#fff', textAlign: 'center', borderRadius: '50px' }}>
+          <Typography variant="h4" component="h2" gutterBottom
+            style={{ backgroundColor: '#32348c', color: '#fff', textAlign: 'center', borderRadius: '50px' }}>
             <b>REPORT</b>
           </Typography>
           <Grid container spacing={2}>
@@ -351,43 +351,43 @@ const Form = ({ handleClose }) => {
 
             {/* Departments and Vehicles */}
             <Grid item xs={6}>
-  <Autocomplete
-    multiple
-    options={departmentsList}
-    getOptionLabel={(option) => option.dept_full_name}
-    value={departments || []}
-    onChange={(e, newValue) => setDepartments(newValue)}
-    renderInput={(params) => (
-      <TextField
-        {...params}
-        label="Departments"
-        error={!!errors.departments}
-        helperText={errors.departments || ''}
-        sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
-      />
-    )}
-    disabled={isDepartmentDisabled}
-  />
-</Grid>
-<Grid item xs={6}>
-  <Autocomplete
-    multiple
-    options={vehiclesList}
-    getOptionLabel={(option) => option.vehicle_name}
-    value={vehicles || []}
-    onChange={(e, newValue) => setVehicles(newValue)}
-    renderInput={(params) => (
-      <TextField
-        {...params}
-        label="Vehicles"
-        error={!!errors.vehicles}
-        helperText={errors.vehicles || ''}
-        sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
-      />
-    )}
-    disabled={isVehicleDisabled}
-  />
-</Grid>
+              <Autocomplete
+                multiple
+                options={departmentsList}
+                getOptionLabel={(option) => option.dept_full_name}
+                value={departments || []}
+                onChange={(e, newValue) => setDepartments(newValue)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Departments"
+                    error={!!errors.departments}
+                    helperText={errors.departments || ''}
+                    sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
+                  />
+                )}
+                disabled={isDepartmentDisabled}
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <Autocomplete
+                multiple
+                options={vehiclesList}
+                getOptionLabel={(option) => option.vehicle_name}
+                value={vehicles || []}
+                onChange={(e, newValue) => setVehicles(newValue)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Vehicles"
+                    error={!!errors.vehicles}
+                    helperText={errors.vehicles || ''}
+                    sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
+                  />
+                )}
+                disabled={isVehicleDisabled}
+              />
+            </Grid>
 
 
             {/* Received By and Particulars */}
@@ -397,7 +397,9 @@ const Form = ({ handleClose }) => {
                   <Autocomplete
                     multiple
                     options={employees}
-                    getOptionLabel={(option) => option.emp_name}
+                    getOptionLabel={(option) =>
+                      `${option.emp_id} / ${option.emp_name} / ${option.emp_designation}`
+                    }
                     value={received_by}
                     onChange={(e, newValue) => setReceivedBy(newValue)}
                     renderInput={(params) => (
@@ -411,6 +413,7 @@ const Form = ({ handleClose }) => {
                     )}
                   />
                 </Grid>
+
                 <Grid item xs={6}>
                   <TextField
                     fullWidth

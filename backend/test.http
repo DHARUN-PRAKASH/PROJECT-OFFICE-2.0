@@ -68,7 +68,7 @@ GET http://localhost:1111/getfy_year
 GET http://localhost:1111/amount/11
 
 ### GET FORM BY PARTICULARS
-GET http://localhost:1111/particulars/QEF
+GET http://localhost:1111/particulars/hello
 
 ### GET FORM BY FY YEAR
 GET http://localhost:1111/fy_year/2025
@@ -89,8 +89,7 @@ GET http://localhost:1111/getFormBySubCatName/Bus Maintenance
 GET http://localhost:1111/getFormByVehicleID/1
 
 ### GET FORM BY EMPLOYEE ID
-GET http://localhost:1111/getFormByEmployeeID/1
-
+GET http://localhost:1111/getFormByEmployeeID/22AD105
 ### GET FORM DATA BY FY YEAR AND MONTH 
 GET http://localhost:1111/fy_year_month/2025/August
 

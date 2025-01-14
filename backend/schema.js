@@ -21,9 +21,10 @@ const vehicle = mongoose.model('vehicle', vehicleSchema);
 
 // EMPLOYEE SCHEMA
 var employeeSchema = new mongoose.Schema({
-    emp_id: { type: Number },
+    emp_id: { type: String },
     emp_name: { type: String },
     emp_status: { type: String },
+    emp_designation : { type: String }
 });
 const employee = mongoose.model('employee', employeeSchema);
 
