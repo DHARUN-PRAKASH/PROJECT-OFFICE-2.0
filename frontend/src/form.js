@@ -149,7 +149,7 @@ const Form = ({ handleClose }) => {
       return;
     }
 
-    const formattedDate = date ? format(new Date(date), 'yyyy-MM-dd') : '';
+    const formattedDate = date ? format(new Date(date), 'dd-MM-yyyy') : '';
 
     const serializedData = {
       fy_year: fy_year ?  JSON.stringify(fy_year) : null ,
@@ -283,7 +283,7 @@ const Form = ({ handleClose }) => {
                   <LocalizationProvider dateAdapter={AdapterDateFns}>
                     <DesktopDatePicker
                       label="Date"
-                      inputFormat="MM/DD/YYYY"
+                      format="dd/MM/yyyy"
                       value={date}
                       onChange={(newValue) => setDate(newValue)}
                       renderInput={(params) => (

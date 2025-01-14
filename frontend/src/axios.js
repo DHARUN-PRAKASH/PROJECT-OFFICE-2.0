@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { toDate } from 'date-fns';
 
 
 
@@ -337,6 +338,19 @@ export const modifyForm = async (formData, files) => {
     } else {
       console.error('Error during the request setup:', error.message); // Error in setting up the request
     }
+    throw error;
+  }
+};
+
+
+//fiter by date in consolidate
+export const dateFilter = async (formattedFDate, formattedTDate) => {
+  try {
+    const response = await axios.get(`http://localhost:1111/date_filter/${formattedFDate}/${formattedTDate}`);
+    console.log('Form fetched successfully:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching data:', error);
     throw error;
   }
 };
