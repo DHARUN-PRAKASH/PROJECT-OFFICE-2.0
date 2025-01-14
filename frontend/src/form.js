@@ -116,8 +116,13 @@ const Form = ({ handleClose }) => {
     if (!bill_no) errors.bill_no = 'Bill Number is required';
     if (!amount) errors.amount = 'Amount is required';
     if (!received_by || received_by.length === 0) errors.received_by = 'Received By is required';
-    if (!departments && !isDepartmentDisabled) errors.departments = 'Department is required';
-    if (!vehicles && !isVehicleDisabled) errors.vehicles = 'Vehicle is required';
+    if ((!departments || departments.length === 0) && !isDepartmentDisabled) {
+      errors.departments = 'At least one department is required';
+    }
+    if ((!vehicles || vehicles.length === 0) && !isVehicleDisabled) {
+      errors.vehicles = 'At least one vehicle is required';
+    }
+    
 
     setErrors(errors);
 
@@ -345,46 +350,45 @@ const Form = ({ handleClose }) => {
             </Grid>
 
             {/* Departments and Vehicles */}
-            <Grid item xs={12}>
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Autocomplete
-                    options={departmentsList}
-                    getOptionLabel={(option) => option.dept_full_name}
-                    value={departments}
-                    onChange={(e, newValue) => setDepartments(newValue)}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="Departments"
-                        error={!!errors.departments}
-                        helperText={errors.departments || ''}
-                        sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
-                      />
-                    )}
-                    disabled={isDepartmentDisabled}
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <Autocomplete
-                    options={vehiclesList}
-                    getOptionLabel={(option) => option.vehicle_name}
-                    value={vehicles}
-                    onChange={(e, newValue) => setVehicles(newValue)}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="Vehicles"
-                        error={!!errors.vehicles}
-                        helperText={errors.vehicles || ''}
-                        sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
-                      />
-                    )}
-                    disabled={isVehicleDisabled}
-                  />
-                </Grid>
-              </Grid>
-            </Grid>
+            <Grid item xs={6}>
+  <Autocomplete
+    multiple
+    options={departmentsList}
+    getOptionLabel={(option) => option.dept_full_name}
+    value={departments || []}
+    onChange={(e, newValue) => setDepartments(newValue)}
+    renderInput={(params) => (
+      <TextField
+        {...params}
+        label="Departments"
+        error={!!errors.departments}
+        helperText={errors.departments || ''}
+        sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
+      />
+    )}
+    disabled={isDepartmentDisabled}
+  />
+</Grid>
+<Grid item xs={6}>
+  <Autocomplete
+    multiple
+    options={vehiclesList}
+    getOptionLabel={(option) => option.vehicle_name}
+    value={vehicles || []}
+    onChange={(e, newValue) => setVehicles(newValue)}
+    renderInput={(params) => (
+      <TextField
+        {...params}
+        label="Vehicles"
+        error={!!errors.vehicles}
+        helperText={errors.vehicles || ''}
+        sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
+      />
+    )}
+    disabled={isVehicleDisabled}
+  />
+</Grid>
+
 
             {/* Received By and Particulars */}
             <Grid item xs={12}>

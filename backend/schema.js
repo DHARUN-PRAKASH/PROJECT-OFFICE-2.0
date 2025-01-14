@@ -77,9 +77,9 @@ var formSchema = new mongoose.Schema({
     received_by: { type: Array },
     particulars: { type: String },
     bill_no: { type: String },
-    departments: { type: Object },
+    departments: { type: Array },
     amount: { type: String },
-    vehicles: { type: Object },
+    vehicles: { type: Array },
     files:{type:String},
     uploads:{type:Array}
 });
