@@ -27,6 +27,7 @@ import {
   getVehicle,
   getFyYear,
   deleteFormById,
+  getFiscalYears
 } from "./axios";
 import Dash from "./dash";
 import { PDFDocument, rgb } from "pdf-lib";
@@ -146,18 +147,18 @@ const Table = () => {
         const formattedData = data.map((form, index) => ({
           objectId: form._id,
           id: index + 1,
-          vehicleId: form.vehicles?.vehicle_id || "N/A",
+          vehicleId:  form.vehicles?.map((vehicle) => vehicle.vehicle_id).join(", ") ||  "N/A",
           date: form.date,
           headCategory: form.head_cat?.head_cat_name || "N/A",
           subCategory: form.sub_cat?.sub_cat_name || "N/A",
           particulars: form.particulars,
-          amount: form.amount,
+          amount: form.TotalAmount,
           pdfLink: form.files,
           fyYear: form.fy_year?.fy_name || "N/A",
           month: form.month?.month_name || "N/A",
           employeeId:
             form.received_by?.map((emp) => emp.emp_id).join(", ") || "N/A",
-          departments: form.departments?.dept_full_name || "N/A",
+          departments: form.departments?.map((department) => department.dept_id).join(", ") ||  "N/A",
           bill_no: form.bill_no || "N/A",
         }));
 
@@ -169,147 +170,143 @@ const Table = () => {
 
     fetchForms();
   }, [filters]);
+  
 
-  const handlePdfGeneration = async (rowData) => {
-    const doc = new jsPDF();
-    let yOffset = 10; // Initial Y position for details
-
-    const addDetail = (text) => {
-      if (yOffset > 280) {
-        // Check if we've exceeded the page height
-        doc.addPage(); // Add a new page
-        yOffset = 10; // Reset the Y offset for the new page
-      }
-      doc.text(10, yOffset, text);
-      yOffset += 10; // Increment the Y offset for the next detail
-    };
-
-    // Define the table data
-    const tableData = [
-      ["Vehicle ID", rowData.vehicleId],
-      ["Date", rowData.date],
-      ["Head Category", rowData.headCategory],
-      ["Sub Category", rowData.subCategory],
-      ["Particulars", rowData.particulars],
-      ["Amount", rowData.amount],
-      ["Financial Year", rowData.fyYear],
-      ["Month", rowData.month],
-      ["Bill Number", rowData.bill_no],
-      ["Departments", rowData.departments],
-      ["Employee ID", rowData.employeeId],
-    ];
-
-    // Generate the table
-    doc.autoTable({
-      startY: yOffset + 5,
-      head: [["Field", "Value"]],
-      body: tableData,
-      theme: "grid",
-      margin: { top: 10 },
-    });
-
-    const pdfBlob = doc.output("blob");
-
-    // Create a URL for the blob
-    const pdfUrl = URL.createObjectURL(pdfBlob);
-
-    // Open the PDF URL in a new browser tab
-    window.open(pdfUrl, "_blank");
+  const handlePdfGeneration = (rowData) => {
+    try {
+      const doc = new jsPDF();
+  
+      // Set title
+      doc.setFontSize(16);
+      doc.text("Report", 105, 10, { align: "center" });
+  
+      // Define field-value pairs with the required keys only
+      const fields = [
+        ["Head Category", rowData.headCategory || "N/A"],
+        ["Sub Category", rowData.subCategory || "N/A"],
+        ["Vehicle ID", rowData.vehicleId || "N/A"],
+        ["Departments", rowData.departments || "N/A"],
+        ["Employee ID", rowData.employeeId || "N/A"],
+        ["Particulars", rowData.particulars || "N/A"],
+        ["Total Amount", rowData.amount || "N/A"],
+        ["Financial Year", rowData.fyYear || "N/A"],
+        ["Month", rowData.month || "N/A"]
+      ];
+  
+      // Initial Y position for the content
+      let yPosition = 20;
+  
+      // Iterate through fields and add to PDF
+      fields.forEach(([field, value]) => {
+        doc.setFontSize(12);
+        doc.text(`${field}:`, 10, yPosition); // Field label
+        doc.setFont("bold");
+        doc.text(value.toString(), 80, yPosition); // Field value
+        doc.setFont("normal");
+        yPosition += 10; // Increment Y position
+      });
+  
+      // Open PDF in a new tab
+      const pdfOutput = doc.output("dataurlnewwindow"); // Generates and opens PDF in a new window
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+    }
   };
-
+  
+  
+  
   const isAdmin = sessionStorage.getItem('admin') === 'true';
 
-  const columns = [
-    {
-      field: "id",
-      headerName: <b>S.No</b>,
-      flex: 0.5,
-      headerClassName: "super-app-theme--header",
-    },
-    {
-      field: "vehicleId",
-      headerName: <b>VEHICLE ID</b>,
-      flex: 1,
-      headerClassName: "super-app-theme--header",
-    },
-    {
-      field: "date",
-      headerName: <b>DATE</b>,
-      flex: 1,
-      headerClassName: "super-app-theme--header",
-    },
-    {
-      field: "headCategory",
-      headerName: <b>HEAD CATEGORY</b>,
-      flex: 1.5,
-      headerClassName: "super-app-theme--header",
-    },
-    {
-      field: "subCategory",
-      headerName: <b>SUB CATEGORY</b>,
-      flex: 1.5,
-      headerClassName: "super-app-theme--header",
-    },
-    {
-      field: "particulars",
-      headerName: <b>PARTICULARS</b>,
-      flex: 1.5,
-      headerClassName: "super-app-theme--header",
-    },
-    {
-      field: "amount",
-      headerName: <b>AMOUNT</b>,
-      flex: 1,
-      headerClassName: "super-app-theme--header",
-    },
-    {
-      field: "pdfLink",
-      headerName: <b>PDF</b>,
-      flex: 0.5,
-      headerClassName: "super-app-theme--header",
-      renderCell: (params) => (
+const columns = [
+  {
+    field: "id",
+    headerName: <b>S.No</b>,
+    flex: 0.5,
+    headerClassName: "super-app-theme--header",
+  },
+  {
+    field: "vehicleId",
+    headerName: <b>VEHICLE ID</b>,
+    flex: 1,
+    headerClassName: "super-app-theme--header",
+  },
+  {
+    field: "date",
+    headerName: <b>DATE</b>,
+    flex: 1,
+    headerClassName: "super-app-theme--header",
+  },
+  {
+    field: "headCategory",
+    headerName: <b>HEAD CATEGORY</b>,
+    flex: 1.5,
+    headerClassName: "super-app-theme--header",
+  },
+  {
+    field: "subCategory",
+    headerName: <b>SUB CATEGORY</b>,
+    flex: 1.5,
+    headerClassName: "super-app-theme--header",
+  },
+  {
+    field: "particulars",
+    headerName: <b>PARTICULARS</b>,
+    flex: 1.5,
+    headerClassName: "super-app-theme--header",
+  },
+  {
+    field: "amount",
+    headerName: <b>TOTAL AMOUNT</b>,
+    flex: 1,
+    headerClassName: "super-app-theme--header",
+  },
+  {
+    field: "pdfLink",
+    headerName: <b>PDF</b>,
+    flex: 0.5,
+    headerClassName: "super-app-theme--header",
+    renderCell: (params) => (
+      <IconButton
+        component="a"
+        href={`http://localhost:1111/merged_pdfs/${params.value}`}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <PictureAsPdfRoundedIcon />
+      </IconButton>
+    ),
+  },
+  {
+    field: "generatePdf",
+    headerName: <b>GEN PDF</b>,
+    flex: 0.7,
+    headerClassName: "super-app-theme--header",
+    renderCell: (params) => (
+      <IconButton onClick={() => handlePdfGeneration(params.row)}>
+        <PreviewRoundedIcon />
+      </IconButton>
+    ),
+  },
+  isAdmin && {
+    field: "actions",
+    headerName: <b>ACTIONS</b>,
+    flex: 1,
+    headerClassName: "super-app-theme--header",
+    renderCell: (params) => (
+      <div>
+        <IconButton onClick={() => handleEdit(params.row.objectId)}>
+          <EditIcon />
+        </IconButton>
         <IconButton
-          component="a"
-          href={`http://localhost:1111/merged_pdfs/${params.value}`}
-          target="_blank"
-          rel="noopener noreferrer"
+          onClick={() => handleDelete(params.row.objectId)}
+          color="error"
         >
-          <PictureAsPdfRoundedIcon />
+          <DeleteIcon />
         </IconButton>
-      ),
-    },
-    {
-      field: "generatePdf",
-      headerName: <b>GEN PDF</b>,
-      flex: 0.7,
-      headerClassName: "super-app-theme--header",
-      renderCell: (params) => (
-        <IconButton onClick={() => handlePdfGeneration(params.row)}>
-          <PreviewRoundedIcon />
-        </IconButton>
-      ),
-    },
-    isAdmin && {
-      field: "actions",
-      headerName: <b>ACTIONS</b>,
-      flex: 1,
-      headerClassName: "super-app-theme--header",
-      renderCell: (params) => (
-        <div>
-          <IconButton onClick={() => handleEdit(params.row.objectId)}>
-            <EditIcon />
-          </IconButton>
-          <IconButton
-            onClick={() => handleDelete(params.row.objectId)}
-            color="error"
-          >
-            <DeleteIcon />
-          </IconButton>
-        </div>
-      ),
-    },
-  ].filter(Boolean); // Remove undefined columns if not admin
-
+      </div>
+    ),
+  },
+].filter(Boolean); // Remove undefined columns if not admin
 
   const handleClear = () => {
     setFilters({

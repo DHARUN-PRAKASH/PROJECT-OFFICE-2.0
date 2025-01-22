@@ -1,4 +1,5 @@
 import axios from 'axios';
+
 import { toDate } from 'date-fns';
 
 
@@ -31,8 +32,8 @@ export const postform = async (formData, files) => {
     // Post form data to the server
     const response = await axios.post('http://localhost:1111/postform', data, {
       headers: {
-        'Content-Type': 'multipart/form-data'
-      }
+        'Content-Type': 'multipart/form-data',
+      },
     });
 
     return response.data;
@@ -41,6 +42,7 @@ export const postform = async (formData, files) => {
     throw error;
   }
 };
+
 
 // DELETE FORM 
 
@@ -101,6 +103,17 @@ export const getforms = async () => {
   } catch (error) {
     console.error('Error fetching forms:', error);
     throw error;
+  }
+};
+
+// Function to get fiscal year data  for action button if fy_id is true show the actiion button for admin : false users 
+export const getFiscalYears = async () => {
+  try {
+    const response = await axios.get('http://localhost:1111/getfy_year');
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching fiscal year data:", error);
+    throw error; // Propagate the error for handling in the component
   }
 };
 

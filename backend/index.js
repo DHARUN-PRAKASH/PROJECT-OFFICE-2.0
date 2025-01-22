@@ -8,6 +8,7 @@ const fs = require('fs');
 const multer = require('multer');
 const { PDFDocument } = require('pdf-lib');
 const { parse, isValid, format } = require('date-fns');
+const sharp = require('sharp');
 
 const app = express();
 
@@ -49,164 +50,74 @@ app.post('/signin', async (req, res) => {
     }
 });
 
-
-// Post form with file upload and PDF merging
-// Ensure directories exist
-const ensureDir = (dir) => {
-    if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-    }
-};
-
-// Ensure the upload and merged PDFs directories exist
-ensureDir(path.join(__dirname, 'public', 'pdf'));
-ensureDir(path.join(__dirname, 'public', 'merged_pdfs'));
-
-// Multer storage configuration
-
+// Multer setup for storing files in `public/pdf`
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, path.join(__dirname, 'public', 'pdf')); // Save to the 'public/pdf' directory
+        cb(null, path.join(__dirname, 'public/pdf'));
     },
     filename: (req, file, cb) => {
-        const safeFilename = file.originalname.trim(); // Ensure no leading/trailing spaces
-        // console.log('Saving file with original name:', safeFilename);
-        cb(null, safeFilename); // Save with the original name
-    }
+        cb(null, `${Date.now()}-${file.originalname}`);
+    },
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({ storage });
+module.exports = upload;
 
 
-
-
-// Function to merge PDF files
-// Utility function to add an image as a page in the PDF
-
-
-// Utility function to add an image as a page in the PDF
-const addImageToPdf = async (pdfDoc, imageBuffer, extension) => {
+// POST route for form submission
+app.post('/postform', upload.array('files', 10), async (req, res) => {
     try {
-        let image;
-        switch (extension) {
-            case '.png':
-                image = await pdfDoc.embedPng(imageBuffer);
-                break;
-            case '.jpg':
-            case '.jpeg':
-                image = await pdfDoc.embedJpg(imageBuffer);
-                break;
-            default:
-                throw new Error(`Unsupported image type: ${extension}`);
-        }
+        // Parse form data
+        const {
+            fy_year,
+            month,
+            head_cat,
+            sub_cat,
+            date,
+            received_by,
+            particulars,
+            departments,
+            vehicles,
+            bills,
+            TotalAmount,
+        } = req.body;
 
-        const { width, height } = image.scale(1);
-        const page = pdfDoc.addPage([width, height]);
-        page.drawImage(image, {
-            x: 0,
-            y: 0,
-            width,
-            height,
-        });
-    } catch (error) {
-        console.error('Error adding image to PDF:', error);
-        throw error;
-    }
-};
+        // Map files to an array of file paths
+        const uploadedFiles = req.files.map((file) => `/pdf/${file.filename}`);
 
-// Updated function to merge files
-const mergeFilesToPdf = async (files, outputPath) => {
-    try {
-        const pdfDoc = await PDFDocument.create();
+        // Parse JSON fields
+        const parsedFyYear = JSON.parse(fy_year);
+        const parsedMonth = JSON.parse(month);
+        const parsedHeadCat = JSON.parse(head_cat);
+        const parsedSubCat = JSON.parse(sub_cat);
+        const parsedReceivedBy = JSON.parse(received_by);
+        const parsedDepartments = JSON.parse(departments);
+        const parsedVehicles = JSON.parse(vehicles);
+        const parsedBills = JSON.parse(bills);
 
-        for (const file of files) {
-            const filePath = path.join(__dirname, 'public', 'pdf', file.filename);
-            // console.log(`Processing file: ${filePath}`);
-            if (!fs.existsSync(filePath)) {
-                console.error(`File not found: ${filePath}`);
-                throw new Error(`File not found: ${filePath}`);
-            }
-
-            const fileBuffer = fs.readFileSync(filePath);
-            const ext = path.extname(file.filename).toLowerCase();
-
-            if (ext === '.pdf') {
-                const pdf = await PDFDocument.load(fileBuffer);
-                const copiedPages = await pdfDoc.copyPages(pdf, pdf.getPageIndices());
-                copiedPages.forEach((page) => pdfDoc.addPage(page));
-            } else if (['.png', '.jpg', '.jpeg'].includes(ext)) {
-                await addImageToPdf(pdfDoc, fileBuffer, ext);
-            } else {
-                console.error(`Unsupported file type: ${ext}`);
-                throw new Error(`Unsupported file type: ${ext}`);
-            }
-        }
-
-        const pdfBytes = await pdfDoc.save();
-        fs.writeFileSync(outputPath, pdfBytes);
-        // console.log(`PDF saved to: ${outputPath}`);
-    } catch (error) {
-        console.error('Error merging files:', error);
-        throw error;
-    }
-};
-
-
-
-// Post form with file upload and PDF merging
-
-app.post('/postform', upload.array('files'), async (req, res) => {
-    try {
-        // console.log('Files received:', req.files);
-
-        // Extract and parse form fields from req.body
-        const { fy_year, month, head_cat, sub_cat, date, received_by, particulars, bill_no, departments, amount, vehicles } = req.body;
-
-        // Convert JSON strings back to objects
-        const parsedFy_year = JSON.parse(fy_year || '[]');
-        const parsedMonth = JSON.parse(month || '[]');
-        const parsedHeadCat = JSON.parse(head_cat || '[]');
-        const parsedSubCat = JSON.parse(sub_cat || '[]');
-        const parsedReceivedBy = JSON.parse(received_by || '[]');
-        const parsedDepartments = JSON.parse(departments || '[]');
-        const parsedVehicles = JSON.parse(vehicles || '[]');
-
-        // Generate output file name for the merged PDF
-        const billNumber = bill_no || 'unknown';
-        const todayDate = date || new Date().toISOString().split('T')[0];
-        const randomNumber = Math.floor(Math.random() * 1000);
-        const outputFileName = `${billNumber}_${todayDate}_${randomNumber}.pdf`;
-        const outputPath = path.join(__dirname, 'public', 'merged_pdfs', outputFileName);
-
-        // Process files (e.g., merge PDFs)
-        await mergeFilesToPdf(req.files, outputPath);
-
-        // Collect original filenames to store in the 'uploads' array
-        const uploadedFiles = req.files.map(file => file.originalname);
-
-        // Save form data along with the output file name and uploaded file name
-        const newForm = new form({
-            fy_year : parsedFy_year,
-            month : parsedMonth,
+        // Create and save the form entry
+        const Form = new form({
+            fy_year: parsedFyYear,
+            month: parsedMonth,
             head_cat: parsedHeadCat,
             sub_cat: parsedSubCat,
             date,
             received_by: parsedReceivedBy,
             particulars,
-            bill_no,
             departments: parsedDepartments,
-            amount,
             vehicles: parsedVehicles,
-            files: outputFileName, // Merged PDF filename
-            uploads: uploadedFiles  // Original filenames
+            bills: parsedBills,
+            file: uploadedFiles,
+            uploads: uploadedFiles,
+            TotalAmount,
         });
 
-        await newForm.save();
-        res.json({ message: `${fy_year} has been added` });
-        // console.log(newForm);
+        await Form.save();
+
+        res.status(200).json({ message: 'Form submitted successfully', Form });
     } catch (error) {
-        console.error('Error saving form:', error);
-        res.status(500).json({ error: 'Failed to add form' });
+        console.error('Error submitting form:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
 
@@ -749,6 +660,8 @@ app.get('/getforms/:id', async (req, res) => {
       res.status(500).json({ message: 'Server error', error });
     }
   });
+
+  
 
 app.listen(1111, () => {
     console.log("Express connected!!!");

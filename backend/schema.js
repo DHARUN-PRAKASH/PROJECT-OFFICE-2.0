@@ -69,7 +69,8 @@ var signinSchema = new mongoose.Schema({
 const signin = mongoose.model('signin', signinSchema);
 
 // FORM SCHEMA
-var formSchema = new mongoose.Schema({
+
+const formSchema = new mongoose.Schema({
     fy_year: { type: Object },
     month: { type: Object },
     head_cat: { type: Object },
@@ -77,14 +78,23 @@ var formSchema = new mongoose.Schema({
     date: { type: String },
     received_by: { type: Array },
     particulars: { type: String },
-    bill_no: { type: String },
     departments: { type: Array },
-    amount: { type: String },
     vehicles: { type: Array },
-    files:{type:String},
-    uploads:{type:Array}
+    bills: [
+        {
+            bill_no: { type: String, required: true },
+            amount: { type: Number, required: true },
+        }
+    ],
+    file:{ type: Array},
+    uploads: { type: Array }, // Merged file path
+    TotalAmount: { type: Number }
 });
-const form = mongoose.model('form', formSchema);
+
+const form = mongoose.model('Form', formSchema);
+
+module.exports = form;
+
 
 module.exports = {
     department,

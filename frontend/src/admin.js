@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Container, Box, Card, CardContent, Button, FormControl, TextField, IconButton } from '@mui/material';
+import { Typography, Container, Box, Card, CardContent, Button, FormControl, TextField } from '@mui/material';
 import { DesktopDatePicker } from '@mui/x-date-pickers';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import CachedIcon from '@mui/icons-material/Cached';
 import Dash from './dash';
 import {
   fetchMonthData,
@@ -227,9 +226,6 @@ export const Admin = () => {
                 
               </Card>
             ))}
-           <IconButton onClick={fetchData} sx={{ color: '#32348c' }}>
-              <CachedIcon />
-            </IconButton>
           </Box>
           
         </Box>

@@ -1,158 +1,175 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { Typography, Container, Box, Card, CardContent, Button, FormControl, TextField, Switch } from '@mui/material';
-import { DesktopDatePicker } from '@mui/x-date-pickers';
-import Dash from './dash';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'; 
+import React, { useState } from "react";
+import {
+  TextField,
+  Button,
+  IconButton,
+  Chip,
+  Grid,
+  Typography,
+  Box,
+  Paper,
+  Divider,
+} from "@mui/material";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import DeleteIcon from "@mui/icons-material/Delete";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
 
-export const Admin = () => {
-  const [selectedFyYear, setSelectedFyYear] = useState(null);
-  const [selectedMonth, setSelectedMonth] = useState(null);
-  const [isFyYearActive, setIsFyYearActive] = useState(false);
-  const [isMonthActive, setIsMonthActive] = useState(false);
-  const [cardsData, setCardsData] = useState([]);
+const FiscalForm = () => {
+  const [bills, setBills] = useState([
+    { bill_no: "", amount: "", files: [] }, // Default bill
+  ]);
 
-  useEffect(() => {
-    axios.get('http://localhost:1111/getmonth')
-      .then(response => {
-        setCardsData(response.data);
-      })
-      .catch(error => {
-        console.error('Error fetching data:', error);
-      });
-  }, []);
-
-  // Fetch the FY year status when a year is selected
-  useEffect(() => {
-    if (selectedFyYear) {
-      axios.get(`http://localhost:1111/getfy_year?fy_name=${selectedFyYear.getFullYear()}`)
-        .then(response => {
-          setIsFyYearActive(response.data.fy_id); // Set the switch state based on fetched data
-        })
-        .catch(error => {
-          console.error('Error fetching FY year status:', error);
-        });
-    } else {
-      setIsFyYearActive(false); // Reset switch state if no year is selected
-    }
-  }, [selectedFyYear]);
-
-  // Fetch the month status when a month is selected
-  useEffect(() => {
-    if (selectedMonth) {
-      axios.get(`http://localhost:1111/getmonth?month_name=${selectedMonth.toLocaleString('default', { month: 'long' })}`)
-        .then(response => {
-          setIsMonthActive(response.data.month_id); // Set the switch state based on fetched data
-        })
-        .catch(error => {
-          console.error('Error fetching month status:', error);
-        });
-    } else {
-      setIsMonthActive(false); // Reset switch state if no month is selected
-    }
-  }, [selectedMonth]);
-
-  const handleFyYearChange = (newValue) => {
-    setSelectedFyYear(newValue);
+  const handleBillChange = (index, field, value) => {
+    const updatedBills = [...bills];
+    updatedBills[index][field] = value;
+    setBills(updatedBills);
   };
 
-  const handleMonthChange = (newValue) => {
-    setSelectedMonth(newValue);
+  const handleFileUpload = (index, files) => {
+    const updatedBills = [...bills];
+    const fileNames = Array.from(files)
+      .filter((file) => /\.(png|jpe?g|pdf)$/i.test(file.name)) // Validate file type
+      .map((file) => file.name);
+
+    if (fileNames.length === 0) {
+      alert("Only PNG, JPEG, JPG, and PDF files are allowed.");
+      return;
+    }
+
+    updatedBills[index].files = [...updatedBills[index].files, ...fileNames];
+    setBills(updatedBills);
   };
 
-  const handleFyYearToggle = async () => {
-    if (!selectedFyYear) return;
-
-    const newStatus = !isFyYearActive;
-    setIsFyYearActive(newStatus);
-
-    try {
-      const url = newStatus
-        ? 'http://localhost:1111/settruefyyear'
-        : 'http://localhost:1111/setfalsefyyear';
-
-      await axios.post(url, { fy_name: selectedFyYear.getFullYear() });
-    } catch (error) {
-      console.error('Error updating FY year status:', error);
-    }
+  const handleFileDelete = (billIndex, fileIndex) => {
+    const updatedBills = [...bills];
+    updatedBills[billIndex].files.splice(fileIndex, 1);
+    setBills(updatedBills);
   };
 
-  const handleMonthToggle = async () => {
-    if (!selectedMonth) return;
+  const addNewBill = () => {
+    setBills([...bills, { bill_no: "", amount: "", files: [] }]);
+  };
 
-    const newStatus = !isMonthActive;
-    setIsMonthActive(newStatus);
+  const removeBill = (index) => {
+    const updatedBills = [...bills];
+    updatedBills.splice(index, 1);
+    setBills(updatedBills);
+  };
 
-    try {
-      const url = newStatus
-        ? 'http://localhost:1111/setmonthtrue'
-        : 'http://localhost:1111/setmonthfalse';
-
-      await axios.post(url, { month_name: selectedMonth.toLocaleString('default', { month: 'long' }) });
-    } catch (error) {
-      console.error('Error updating month status:', error);
-    }
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log("Form Data:", { bills });
+    // Add form submission logic here
   };
 
   return (
-    <div>
-      <Dash />
-      <Container sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', marginBottom: '50px' }}>
-        <Box mt={5} p={3} boxShadow={3} borderRadius={5} sx={{ backgroundColor: 'white', width: '80vw', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <Typography variant="h4" sx={{ color: 'white', backgroundColor: '#32348c', padding: '10px', borderRadius: '5px', textAlign: 'center', width: '100%' }}><b>ADMIN</b></Typography>
+    <Box p={2}>
+      <Typography variant="h4" gutterBottom>
+        Fiscal Data Form
+      </Typography>
+      <form onSubmit={handleSubmit}>
+        {/* Wrapper for all bills */}
+        <Paper elevation={3} sx={{ p: 2, borderRadius: 2 }}>
+          {bills.map((bill, index) => (
+            <Box key={index} mb={3}>
+              <Grid container spacing={2} alignItems="center">
+                {/* Bill Number */}
+                <Grid item xs={4}>
+                  <TextField
+                    fullWidth
+                    label="Bill Number"
+                    value={bill.bill_no}
+                    onChange={(e) => handleBillChange(index, "bill_no", e.target.value)}
+                    required
+                  />
+                </Grid>
+                {/* Amount */}
+                <Grid item xs={4}>
+                  <TextField
+                    fullWidth
+                    label="Amount"
+                    type="number"
+                    value={bill.amount}
+                    onChange={(e) => handleBillChange(index, "amount", e.target.value)}
+                    required
+                  />
+                </Grid>
+                {/* Upload Files */}
+                <Grid item xs={4}>
+                  <Button
+                    variant="outlined"
+                    component="label"
+                    fullWidth
+                    startIcon={<UploadFileIcon />}
+                  >
+                    Upload Files
+                    <input
+                      type="file"
+                      multiple
+                      hidden
+                      accept=".png,.jpeg,.jpg,.pdf"
+                      onChange={(e) => handleFileUpload(index, e.target.files)}
+                    />
+                  </Button>
+                </Grid>
+              </Grid>
 
-          <Box sx={{ width: '100%', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', marginTop: '10px' }}>
-            <Card sx={{ width: '48%' }}>
-              <CardContent>
-                <LocalizationProvider dateAdapter={AdapterDateFns}>
-                  <FormControl sx={{ marginTop: 0, width: '100%' }}>
-                    <DesktopDatePicker
-                      views={['year']}
-                      label="Financial Year"
-                      value={selectedFyYear}
-                      onChange={handleFyYearChange}
-                      renderInput={(params) => <TextField {...params} />}
+              {/* Files Chips */}
+              <Box mt={1}>
+                {bill.files.length > 0 ? (
+                  bill.files.map((file, fileIndex) => (
+                    <Chip
+                      key={fileIndex}
+                      label={file}
+                      onDelete={() => handleFileDelete(index, fileIndex)}
+                      sx={{ mr: 1, mb: 1 }}
                     />
-                  </FormControl>
-                </LocalizationProvider>
-                <Switch
-                  checked={isFyYearActive}
-                  onChange={handleFyYearToggle}
-                  disabled={!selectedFyYear}
-                />
-              </CardContent>
-            </Card>
-            <Card sx={{ width: '48%' }}>
-              <CardContent>
-                <LocalizationProvider dateAdapter={AdapterDateFns}>
-                  <FormControl sx={{ marginTop: 0, width: '100%' }}>
-                    <DesktopDatePicker
-                      views={['month']}
-                      label="Month"
-                      value={selectedMonth}
-                      onChange={handleMonthChange}
-                      renderInput={(params) => <TextField {...params} />}
-                    />
-                  </FormControl>
-                </LocalizationProvider>
-                <Switch
-                  checked={isMonthActive}
-                  onChange={handleMonthToggle}
-                  disabled={!selectedMonth}
-                />
-              </CardContent>
-            </Card>
+                  ))
+                ) : (
+                  <Typography variant="body2" color="textSecondary">
+                    No files uploaded.
+                  </Typography>
+                )}
+              </Box>
+
+              {/* Divider */}
+              <Divider sx={{ my: 2 }} />
+
+              {/* Remove Bill Button */}
+              <Box textAlign="right">
+                <IconButton
+                  onClick={() => removeBill(index)}
+                  disabled={bills.length === 1} // Prevent removing the last bill
+                  sx={{ color: "error.main" }}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </Box>
+            </Box>
+          ))}
+
+          {/* Add New Bill Button */}
+          <Box textAlign="center">
+            <Button
+              variant="contained"
+              startIcon={<AddCircleOutlineIcon />}
+              onClick={addNewBill}
+              sx={{ mb: 2 }}
+            >
+              Add New Bill
+            </Button>
           </Box>
-          <Box sx={{ width: '100%', display: 'flex', flexWrap: 'wrap', justifyContent: 'center' }}>
-            {cardsData.map((month, index) => (
-              <Card key={index} sx={{ width: '12%', marginBottom: '20px', marginLeft: '20px', marginRight: '10px', height: "5vh", textAlign: 'center', backgroundColor: month.month_id === 0 ? '#e91e63' : month.month_id === 1 ? '#00a67d' : 'white' }}>
-                <CardContent sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'white' }}>{month.month_name}</CardContent>
-              </Card>
-            ))}
-          </Box>
+        </Paper>
+
+        {/* Submit Button */}
+        <Box textAlign="center" mt={3}>
+          <Button type="submit" variant="contained" color="primary">
+            Submit
+          </Button>
         </Box>
-      </Container>
-    </div>
+      </form>
+    </Box>
   );
 };
+
+export default FiscalForm;

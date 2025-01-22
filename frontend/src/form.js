@@ -1,13 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { TextField, Button, Autocomplete, Grid, Box, Typography, Chip, Snackbar, Alert } from '@mui/material';
+import { TextField, Button, Autocomplete, Grid, Box, Typography, Chip, Snackbar, Alert, Paper, Divider, IconButton } from '@mui/material';
 import { useDropzone } from 'react-dropzone';
-import { postform, getHeadCat, getSubCat, getMonth, getDepartment, getEmployee, getVehicle, getFyYear } from './axios';
+import { postform, getHeadCat, getSubCat, getMonth, getDepartment, getEmployee, getVehicle, getFyYear, submitForm } from './axios';
 import Dash from './dash';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DesktopDatePicker } from '@mui/x-date-pickers/DesktopDatePicker';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import DeleteIcon from "@mui/icons-material/Delete";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
+import axios from 'axios';
 
 const Form = ({ handleClose }) => {
   const navigate = useNavigate();
@@ -19,10 +23,13 @@ const Form = ({ handleClose }) => {
   const [date, setDate] = useState(null);
   const [received_by, setReceivedBy] = useState([]);
   const [particulars, setParticulars] = useState('');
-  const [bill_no, setBillNo] = useState('');
   const [departments, setDepartments] = useState(null);
-  const [amount, setAmount] = useState('');
   const [vehicles, setVehicles] = useState(null);
+
+  const [bills, setBills] = useState([{ files: [] }]); // Initialize bills with an empty files array
+
+
+  const [files, setFiles] = useState([]);
 
   const [headCats, setHeadCats] = useState([]);
   const [subCats, setSubCats] = useState([]);
@@ -35,8 +42,6 @@ const Form = ({ handleClose }) => {
   const [isSubCatDisabled, setIsSubCatDisabled] = useState(true);
   const [isDepartmentDisabled, setIsDepartmentDisabled] = useState(true);
   const [isVehicleDisabled, setIsVehicleDisabled] = useState(true);
-
-  const [files, setFiles] = useState([]);
 
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
@@ -107,14 +112,13 @@ const Form = ({ handleClose }) => {
   const validateForm = () => {
     const errors = {};
 
+    // Existing field validations
     if (!fy_year) errors.fy_year = 'Fiscal Year is required';
     if (!month) errors.month = 'Month is required';
     if (!date) errors.date = 'Date is required';
     if (!head_cat) errors.head_cat = 'Head Category is required';
     if (!sub_cat) errors.sub_cat = 'Sub Category is required';
     if (!particulars) errors.particulars = 'Particulars are required';
-    if (!bill_no) errors.bill_no = 'Bill Number is required';
-    if (!amount) errors.amount = 'Amount is required';
     if (!received_by || received_by.length === 0) errors.received_by = 'Received By is required';
     if ((!departments || departments.length === 0) && !isDepartmentDisabled) {
       errors.departments = 'At least one department is required';
@@ -123,65 +127,73 @@ const Form = ({ handleClose }) => {
       errors.vehicles = 'At least one vehicle is required';
     }
 
+    // Bill Validation
+    if (!bills || bills.length === 0) {
+      errors.bills = 'At least one bill is required';
+    } else {
+      bills.forEach((bill, index) => {
+        if (!bill.bill_no) errors[`bill_no_${index}`] = 'Bill Number is required';
+        if (!bill.amount) errors[`amount_${index}`] = 'Amount is required';
+        if (!bill.files || bill.files.length === 0) errors[`files_${index}`] = 'At least one file is required for this bill';
+      });
+    }
 
     setErrors(errors);
 
     const isFormComplete = Object.keys(errors).length === 0;
-    const isFileUploaded = files.length > 0;
 
     if (!isFormComplete) {
       setSnackbarMessage('Please fill in all required fields.');
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
-    } else if (isFormComplete && !isFileUploaded) {
-      setSnackbarMessage('Please upload at least one file.');
+    } else if (isFormComplete && !bills.some((bill) => bill.files.length > 0)) {
+      setSnackbarMessage('Please upload at least one file for each bill.');
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
     }
 
-    return isFormComplete && isFileUploaded ? null : errors;
+    return isFormComplete ? null : errors;
   };
+
+  const formattedDate = date ? format(new Date(date), 'dd-MM-yyyy') : '';
+
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    const validationErrors = validateForm();
-    if (validationErrors) {
-      return;
-    }
 
-    const formattedDate = date ? format(new Date(date), 'dd-MM-yyyy') : '';
-
-    const serializedData = {
-      fy_year: fy_year ? JSON.stringify(fy_year) : null,
-      month: month ? JSON.stringify(month) : null,
-      head_cat: head_cat ? JSON.stringify(head_cat) : null,
-      sub_cat: sub_cat ? JSON.stringify(sub_cat) : null,
+    // Create the form data object (excluding files)
+    const formData = {
+      fy_year: JSON.stringify(fy_year),
+      month: JSON.stringify(month),
+      head_cat: JSON.stringify(head_cat),
+      sub_cat: JSON.stringify(sub_cat),
       date: formattedDate,
-      received_by: received_by ? JSON.stringify(received_by) : [],
-      particulars,
-      bill_no,
-      departments: departments ? JSON.stringify(departments) : null,
-      amount,
-      vehicles: vehicles ? JSON.stringify(vehicles) : null,
+      received_by: JSON.stringify(received_by),
+      particulars: particulars,
+      departments: JSON.stringify(departments),
+      vehicles: JSON.stringify(vehicles),
+      bills: JSON.stringify(bills.map(bill => ({
+        bill_no: bill.bill_no,
+        amount: bill.amount,
+      }))),
     };
 
+    // Collect all the files from bills
+    const files = bills.flatMap(bill => bill.files);
+
     try {
-      const result = await postform(serializedData, files);
-      setSnackbarMessage('The Report was Submitted Successfully!');
+      const response = await postform(formData, files);
+      console.log('Response:', response);
+      setSnackbarMessage('Form submitted successfully!');
       setSnackbarSeverity('success');
       setSnackbarOpen(true);
-
-      setTimeout(() => {
-        navigate('/table');
-      }, 3000);
     } catch (error) {
-      setSnackbarMessage('Error adding form: ' + error.message);
+      console.error('Error submitting form:', error.message);
+      setSnackbarMessage('Error submitting form');
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
     }
   };
-
-
   const handleClear = () => {
     setFyYear(null);
     setMonth(null);
@@ -190,31 +202,39 @@ const Form = ({ handleClose }) => {
     setDate(null);
     setReceivedBy([]);
     setParticulars('');
-    setBillNo('');
     setDepartments(null);
-    setAmount('');
     setVehicles(null);
     setIsSubCatDisabled(true);
     setIsDepartmentDisabled(true);
     setIsVehicleDisabled(true);
-    setFiles([]);
   };
 
-  const onDrop = useCallback((acceptedFiles) => {
-    setFiles((prevFiles) => [...prevFiles, ...acceptedFiles]);
-  }, []);
+  const handleBillChange = (index, field, value) => {
+    const updatedBills = [...bills];
+    updatedBills[index][field] = value;
+    setBills(updatedBills);
+  };
 
-  const { getRootProps, getInputProps } = useDropzone({
-    onDrop,
-    accept: {
-      'application/pdf': ['.pdf'],
-      'image/jpeg': ['.jpeg', '.jpg'],
-      'image/png': ['.png'],
-    },
-  });
+  const handleFileUpload = (index, newFiles) => {
+    const updatedBills = [...bills];
+    updatedBills[index].files = [...updatedBills[index].files, ...newFiles];
+    setBills(updatedBills);
+  };
 
-  const handleFileRemove = (fileName) => {
-    setFiles((prevFiles) => prevFiles.filter(file => file.name !== fileName));
+  const handleFileDelete = (billIndex, fileIndex) => {
+    const updatedBills = [...bills];
+    updatedBills[billIndex].files.splice(fileIndex, 1);
+    setBills(updatedBills);
+  };
+
+  const addNewBill = () => {
+    setBills([...bills, { bill_no: "", amount: "", files: [] }]);
+  };
+
+  const removeBill = (index) => {
+    const updatedBills = [...bills];
+    updatedBills.splice(index, 1);
+    setBills(updatedBills);
   };
 
   const handleCloseSnackbar = () => {
@@ -428,65 +448,102 @@ const Form = ({ handleClose }) => {
               </Grid>
             </Grid>
 
-            {/* Bill Number and Amount */}
+            {/* Wrapper for all bills */}
             <Grid item xs={12}>
               <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    label="Bill Number"
-                    value={bill_no}
-                    onChange={(e) => setBillNo(e.target.value)}
-                    error={!!errors.bill_no}
-                    helperText={errors.bill_no || ''}
-                    sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    label="Amount"
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    error={!!errors.amount}
-                    helperText={errors.amount || ''}
-                    sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
-                  />
+                <Grid item xs={12}>
+                  {bills.map((bill, index) => (
+                    <Box key={index} mb={3}>
+                      <Grid container spacing={2} alignItems="center">
+                        {/* Bill Number */}
+                        <Grid item xs={4}>
+                          <TextField
+                            fullWidth
+                            label="Bill Number"
+                            value={bill.bill_no}
+                            onChange={(e) => handleBillChange(index, "bill_no", e.target.value)}
+                            required
+                          />
+                        </Grid>
+                        {/* Amount */}
+                        <Grid item xs={4}>
+                          <TextField
+                            fullWidth
+                            label="Amount"
+                            type="number"
+                            value={bill.amount}
+                            onChange={(e) => handleBillChange(index, "amount", e.target.value)}
+                            required
+                          />
+                        </Grid>
+                        {/* Upload Files */}
+                        <Grid item xs={4}>
+                          <Button
+                            variant="outlined"
+                            component="label"
+                            fullWidth
+                            startIcon={<UploadFileIcon />}
+                          >
+                            Upload Files
+                            <input
+                              type="file"
+                              multiple
+                              hidden
+                              accept=".png,.jpeg,.jpg,.pdf"
+                              onChange={(e) => handleFileUpload(index, e.target.files)}
+                            />
+                          </Button>
+                        </Grid>
+                      </Grid>
+
+                      {/* Files Chips */}
+                      <Box mt={1}>
+  {bills[index]?.files?.length > 0 ? (
+    bills[index].files.map((file, fileIndex) => (
+      <Chip
+        key={fileIndex}
+        label={file.name || file}
+        onDelete={() => handleFileDelete(index, fileIndex)}
+        sx={{ mr: 1, mb: 1 }}
+      />
+    ))
+  ) : (
+    <Typography variant="body2" color="textSecondary">
+      No files uploaded.
+    </Typography>
+  )}
+</Box>
+
+
+                      {/* Divider */}
+                      <Divider sx={{ my: 2 }} />
+
+                      {/* Remove Bill Button */}
+                      <Box textAlign="right">
+                        <IconButton
+                          onClick={() => removeBill(index)}
+                          disabled={bills.length === 1} // Prevent removing the last bill
+                          sx={{ color: "error.main" }}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Box>
+                    </Box>
+                  ))}
+
+                  {/* Add New Bill Button */}
+                  <Box textAlign="center">
+                    <Button
+                      variant="contained"
+                      startIcon={<AddCircleOutlineIcon />}
+                      onClick={addNewBill}
+                      sx={{ mb: 2 }}
+                    >
+                      Add New Bill
+                    </Button>
+                  </Box>
                 </Grid>
               </Grid>
-            </Grid>
-
-            {/* File Upload and Display */}
-            <Grid item xs={12}>
-              <Box
-                {...getRootProps()}
-                sx={{
-                  borderRadius: '50px',
-                  p: 1,
-                  textAlign: 'center',
-                  cursor: 'pointer',
-                  backgroundColor: '#1565c0',
-                  transition: 'background-color 0.3s, box-shadow 0.3s',
-                  '&:hover': {
-                    backgroundColor: '#1e88e5',
-                    boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.2)',
-                  },
-                }}
-              >
-                <input {...getInputProps()} />
-                <Typography style={{ color: '#ffff' }} variant="body1">UPLOAD FILE</Typography>
-              </Box>
-              <Box sx={{ mt: '15px', display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                {files.map((file, index) => (
-                  <Chip
-                    key={index}
-                    label={file.name}
-                    onDelete={() => handleFileRemove(file.name)}
-                    color="primary"
-                  />
-                ))}
-              </Box>
             </Grid>
 
             {/* Submit and Clear Buttons */}
