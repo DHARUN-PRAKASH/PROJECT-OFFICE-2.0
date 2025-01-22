@@ -50,6 +50,8 @@ app.post('/signin', async (req, res) => {
     }
 });
 
+
+
 // Multer setup for storing files in `public/pdf`
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -61,8 +63,6 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage });
-module.exports = upload;
-
 
 // POST route for form submission
 app.post('/postform', upload.array('files', 10), async (req, res) => {
@@ -79,11 +79,10 @@ app.post('/postform', upload.array('files', 10), async (req, res) => {
             departments,
             vehicles,
             bills,
-            TotalAmount,
         } = req.body;
 
         // Map files to an array of file paths
-        const uploadedFiles = req.files.map((file) => `/pdf/${file.filename}`);
+        const uploadedFiles = req.files.map((file) => path.join(__dirname, 'public/pdf', file.filename));
 
         // Parse JSON fields
         const parsedFyYear = JSON.parse(fy_year);
@@ -94,6 +93,50 @@ app.post('/postform', upload.array('files', 10), async (req, res) => {
         const parsedDepartments = JSON.parse(departments);
         const parsedVehicles = JSON.parse(vehicles);
         const parsedBills = JSON.parse(bills);
+
+        // Calculate TotalAmount by summing up all bill amounts (ensure they are numbers)
+        const totalAmount = parsedBills.reduce((sum, bill) => sum + Number(bill.amount), 0);
+
+        // Create unique name for the merged PDF file
+        const billNo = parsedBills.map((bill) => bill.bill_no).join('_');
+        const randomNumber = Math.floor(Math.random() * 10000);
+        const mergedPdfFileName = `${billNo}_${date}_${randomNumber}.pdf`;
+
+        const mergedPdfPath = path.join(__dirname, 'public/merged_pdf', mergedPdfFileName);
+        const mergedPdfDoc = await PDFDocument.create();
+
+        for (const file of uploadedFiles) {
+            const ext = path.extname(file).toLowerCase();
+            
+            if (['.png', '.jpeg', '.jpg'].includes(ext)) {
+                try {
+                    // If it's an image, convert it to PDF
+                    const imageBuffer = await sharp(file).toBuffer();
+
+                    if (ext === '.jpg' || ext === '.jpeg') {
+                        const img = await mergedPdfDoc.embedJpg(imageBuffer);
+                        const page = mergedPdfDoc.addPage([img.width, img.height]);
+                        page.drawImage(img, { x: 0, y: 0 });
+                    } else if (ext === '.png') {
+                        const img = await mergedPdfDoc.embedPng(imageBuffer);
+                        const page = mergedPdfDoc.addPage([img.width, img.height]);
+                        page.drawImage(img, { x: 0, y: 0 });
+                    }
+                } catch (err) {
+                    console.error('Error processing image:', err);
+                }
+            } else if (ext === '.pdf') {
+                // If it's a PDF, merge it directly
+                const pdfBytes = fs.readFileSync(file);
+                const pdfDoc = await PDFDocument.load(pdfBytes);
+                const copiedPages = await mergedPdfDoc.copyPages(pdfDoc, pdfDoc.getPageIndices());
+                copiedPages.forEach((page) => mergedPdfDoc.addPage(page));
+            }
+        }
+
+        // Save the merged PDF with the new filename
+        const mergedPdfBytes = await mergedPdfDoc.save();
+        fs.writeFileSync(mergedPdfPath, mergedPdfBytes);
 
         // Create and save the form entry
         const Form = new form({
@@ -108,8 +151,8 @@ app.post('/postform', upload.array('files', 10), async (req, res) => {
             vehicles: parsedVehicles,
             bills: parsedBills,
             file: uploadedFiles,
-            uploads: uploadedFiles,
-            TotalAmount,
+            merged_pdf: `/merged_pdf/${mergedPdfFileName}`, // Store the merged file path
+            TotalAmount: totalAmount, // Store the correct total amount
         });
 
         await Form.save();
@@ -522,7 +565,7 @@ app.post('/setmonthfalse', async (req, res) => {
 
 // DELETE FORM 
 
-const mergedPdfPath = path.join(__dirname, 'public/merged_pdfs');
+const mergedPdfPath = path.join(__dirname, 'public/merged_pdf');
 const uploadsPath = path.join(__dirname, 'public/pdf');
 
 // Delete endpoint
@@ -603,7 +646,7 @@ app.put('/modify', upload.array('files'), async (req, res) => {
             const todayDate = date || new Date().toISOString().split('T')[0];
             const randomNumber = Math.floor(Math.random() * 1000);
             outputFileName = `${billNumber}_${todayDate}_${randomNumber}.pdf`;
-            const outputPath = path.join(__dirname, 'public', 'merged_pdfs', outputFileName);
+            const outputPath = path.join(__dirname, 'public', 'merged_pdf', outputFileName);
 
             await mergeFilesToPdf(req.files, outputPath);
         }

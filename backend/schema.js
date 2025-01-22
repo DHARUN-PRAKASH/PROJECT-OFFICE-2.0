@@ -87,7 +87,7 @@ const formSchema = new mongoose.Schema({
         }
     ],
     file:{ type: Array},
-    uploads: { type: Array }, // Merged file path
+    merged_pdf: { type: String }, // Merged file path
     TotalAmount: { type: Number }
 });
 
