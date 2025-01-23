@@ -137,12 +137,12 @@ const ConsolidateAndSummary = () => {
       summaryDoc.setFontSize(12);
       summaryDoc.setTextColor(50, 50, 50);
       summaryDoc.autoTable({
-        head: [["S.No", "Date", "Particulars", "Amount"]],
+        head: [["S.No", "Date", "Particulars", "Total Amount"]],
         body: data.map((item, index) => [
           index + 1,
           item.date,
           item.particulars,
-          item.amount,
+          item.TotalAmount,
         ]),
         startY: 30, // Adjusted to fit new header height
         headStyles: {
@@ -207,12 +207,12 @@ const ConsolidateAndSummary = () => {
       summaryDoc.setFontSize(12);
       summaryDoc.setTextColor(50, 50, 50);
       summaryDoc.autoTable({
-        head: [["S.No", "Date", "Particulars", "Amount"]],
+        head: [["S.No", "Date", "Particulars", "Total Amount"]],
         body: data.map((item, index) => [
           index + 1,
           item.date,
           item.particulars,
-          item.amount,
+          item.TotalAmount,
         ]),
         startY: 30, // Adjusted to fit new header height
         headStyles: {
@@ -266,15 +266,36 @@ const ConsolidateAndSummary = () => {
         // Box Data with Improved UI
         const boxData = [
           ["Particulars:", item.particulars || "N/A"],
-          ["Amount:", item.amount || "N/A"],
+          ["Total Amount:", item.TotalAmount || "N/A"],
           ["Head Cat:", item.head_cat ? item.head_cat.head_cat_name : "N/A"],
           ["Sub Cat:", item.sub_cat ? item.sub_cat.sub_cat_name : "N/A"],
           [
             "Departments:",
-            item.departments ? item.departments.dept_full_name : "N/A",
+            item.departments
+              ? item.departments.dept_full_name
+              : "N/A",
           ],
-          ["Vehicles:", item.vehicles ? item.vehicles.vehicle_name : "N/A"],
+          [
+            "Vehicles:",
+            item.vehicles && item.vehicles.length > 0
+              ? item.vehicles
+                  .map(
+                    (vehicle) =>
+                      `${vehicle.vehicle_name} (ID: ${vehicle.vehicle_id}, Number: ${vehicle.vehicle_number}, Reg No: ${vehicle.vehicle_reg_number})`
+                  )
+                  .join("; ")
+              : "N/A",
+          ],
+          [
+            "Bills:",
+            item.bills && item.bills.length > 0
+              ? item.bills
+                  .map((bill) => `Bill No: ${bill.bill_no}, Amount: ${bill.amount}`)
+                  .join("; ")
+              : "N/A",
+          ],
         ];
+        
 
         itemDoc.setFontSize(12);
         itemDoc.setTextColor(50, 50, 50);
@@ -323,7 +344,7 @@ const ConsolidateAndSummary = () => {
         });
 
         // Fetch and attach the additional PDF if available
-        const fileUrl = `http://localhost:1111/merged_pdfs/${item.files}`;
+        const fileUrl = `http://localhost:1111/merged_pdf/${item.merged_pdf}`;
         const pdfBlob = await fetchPDF(fileUrl);
 
         if (pdfBlob) {

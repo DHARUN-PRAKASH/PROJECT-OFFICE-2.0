@@ -65,6 +65,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // POST route for form submission
+// POST route for form submission
 app.post('/postform', upload.array('files', 10), async (req, res) => {
     try {
         // Parse form data
@@ -81,8 +82,8 @@ app.post('/postform', upload.array('files', 10), async (req, res) => {
             bills,
         } = req.body;
 
-        // Map files to an array of file paths
-        const uploadedFiles = req.files.map((file) => path.join(__dirname, 'public/pdf', file.filename));
+        // Map files to an array of file names (instead of absolute paths)
+        const uploadedFiles = req.files.map((file) => file.filename); // Extract file names only
 
         // Parse JSON fields
         const parsedFyYear = JSON.parse(fy_year);
@@ -102,12 +103,13 @@ app.post('/postform', upload.array('files', 10), async (req, res) => {
         const randomNumber = Math.floor(Math.random() * 10000);
         const mergedPdfFileName = `${billNo}_${date}_${randomNumber}.pdf`;
 
+        // Define the absolute path for the merged PDF
         const mergedPdfPath = path.join(__dirname, 'public/merged_pdf', mergedPdfFileName);
         const mergedPdfDoc = await PDFDocument.create();
 
-        for (const file of uploadedFiles) {
+        for (const file of req.files.map((file) => path.join(__dirname, 'public/pdf', file.filename))) {
             const ext = path.extname(file).toLowerCase();
-            
+
             if (['.png', '.jpeg', '.jpg'].includes(ext)) {
                 try {
                     // If it's an image, convert it to PDF
@@ -134,11 +136,14 @@ app.post('/postform', upload.array('files', 10), async (req, res) => {
             }
         }
 
-        // Save the merged PDF with the new filename
+        // Save the merged PDF
         const mergedPdfBytes = await mergedPdfDoc.save();
         fs.writeFileSync(mergedPdfPath, mergedPdfBytes);
 
-        // Create and save the form entry
+        // Store only the file name for the merged PDF
+        const mergedPdfFileNameOnly = path.basename(mergedPdfPath);
+
+        // Create and save the form entry with file names only
         const Form = new form({
             fy_year: parsedFyYear,
             month: parsedMonth,
@@ -150,8 +155,8 @@ app.post('/postform', upload.array('files', 10), async (req, res) => {
             departments: parsedDepartments,
             vehicles: parsedVehicles,
             bills: parsedBills,
-            file: uploadedFiles,
-            merged_pdf: `/merged_pdf/${mergedPdfFileName}`, // Store the merged file path
+            file: uploadedFiles, // Store file names only
+            merged_pdf: mergedPdfFileNameOnly, // Store merged PDF file name only
             TotalAmount: totalAmount, // Store the correct total amount
         });
 
@@ -163,6 +168,8 @@ app.post('/postform', upload.array('files', 10), async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
+
+
 
 // Get forms
 app.get('/getforms', async (req, res) => {
@@ -215,6 +222,30 @@ app.get('/date_filter/:from/:to', async (req, res) => {
         console.error('Error fetching forms:', error);
         res.status(500).json({ error: 'Failed to retrieve forms' });
     }
+});
+
+// FILTER FOR BILL NO
+
+app.get('/getFormsByBillNos', async (req, res) => {
+  try {
+    // Extract bill numbers from the query parameters
+    const billNos = req.query.bill_nos ? req.query.bill_nos.split(',') : [];
+
+    if (billNos.length === 0) {
+      return res.status(400).json({ error: 'No bill numbers provided' });
+    }
+
+    // Query the database to filter forms based on the provided bill numbers
+    const forms = await form.find({
+      'bills.bill_no': { $in: billNos },
+    });
+
+    // Return the filtered forms
+    res.json(forms);
+  } catch (error) {
+    console.error('Error fetching forms by bill numbers:', error);
+    res.status(500).json({ error: 'Failed to retrieve forms' });
+  }
 });
 
 
@@ -370,18 +401,33 @@ app.get('/getFormByVehicleID/:vehicle_id', async (req, res) => {
 });
 
 // EMPLOYEE ID FILTER 
-
-app.get('/getFormByEmployeeID/:emp_id', async (req, res) => {
+app.get('/getFormsByEmployeeIDs', async (req, res) => {
     try {
-        const empID = req.params.emp_id;
+        const empIDs = req.query.emp_ids; // Expecting a comma-separated string
+        if (!empIDs) {
+            return res.status(400).json({ error: 'No employee IDs provided' });
+        }
+
+        // Convert the comma-separated string into an array
+        const empIDArray = empIDs.split(',').map(id => id.trim());
+
+        // Query the database using $elemMatch to filter nested arrays
         const forms = await form.find({
-            'received_by.emp_id': empID,
+            received_by: {
+                $elemMatch: { emp_id: { $in: empIDArray } },
+            },
         });
+
+        // Send the results back
         res.json(forms);
     } catch (error) {
+        console.error('Error retrieving forms:', error.message);
         res.status(500).json({ error: 'Failed to retrieve forms' });
     }
 });
+
+
+
 
 // Get head category
 app.get('/gethead_cat', async (req, res) => {
@@ -563,12 +609,6 @@ app.post('/setmonthfalse', async (req, res) => {
     }
 });
 
-// DELETE FORM 
-
-const mergedPdfPath = path.join(__dirname, 'public/merged_pdf');
-const uploadsPath = path.join(__dirname, 'public/pdf');
-
-// Delete endpoint
 app.delete('/erase/:id', async (request, response) => {
     try {
         // Find the document by ID and delete it
@@ -579,24 +619,32 @@ app.delete('/erase/:id', async (request, response) => {
         }
 
         // Extract file names from the document
-        const { files, uploads } = data; // Assuming 'files' is for merged PDFs and 'uploads' for other files
+        const { merged_pdf, file } = data;
+
+        // Define directories for merged PDFs and uploaded files
+        const mergedPdfDirectory = path.join(__dirname, 'public/merged_pdf');
+        const fileDirectory = path.join(__dirname, 'public/pdf');
 
         // Delete the merged PDF file if it exists
-        if (files) {
-            const mergedPdfFile = path.join(mergedPdfPath, files);
-            if (fs.existsSync(mergedPdfFile)) {
-                fs.unlinkSync(mergedPdfFile);
-                console.log(`Deleted merged PDF: ${mergedPdfFile}`);
+        if (merged_pdf) {
+            const mergedPdfFilePath = path.join(mergedPdfDirectory, merged_pdf); // Reconstruct the absolute path
+            if (fs.existsSync(mergedPdfFilePath)) {
+                fs.unlinkSync(mergedPdfFilePath);
+                console.log(`Deleted merged PDF: ${mergedPdfFilePath}`);
+            } else {
+                console.log(`Merged PDF not found: ${mergedPdfFilePath}`);
             }
         }
 
-        // Delete each upload file if they exist
-        if (uploads && uploads.length > 0) {
-            uploads.forEach(file => {
-                const uploadFile = path.join(uploadsPath, file);
-                if (fs.existsSync(uploadFile)) {
-                    fs.unlinkSync(uploadFile);
-                    console.log(`Deleted upload file: ${uploadFile}`);
+        // Delete each uploaded file (individual files)
+        if (file && Array.isArray(file)) {
+            file.forEach((fileName) => {
+                const filePath = path.join(fileDirectory, fileName); // Reconstruct the absolute path
+                if (fs.existsSync(filePath)) {
+                    fs.unlinkSync(filePath);
+                    console.log(`Deleted file: ${filePath}`);
+                } else {
+                    console.log(`File not found: ${filePath}`);
                 }
             });
         }
@@ -704,6 +752,8 @@ app.get('/getforms/:id', async (req, res) => {
     }
   });
 
+
+ 
   
 
 app.listen(1111, () => {

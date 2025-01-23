@@ -16,7 +16,7 @@ import {
   getFormsByAmount,
   getFormsByFyYear,
   getFormsByMonth,
-  getFormsByEmployeeID,
+  getFormsByEmployeeIDs,
   getFormsByParticulars,
   getFormsByDate,
   getforms,
@@ -65,9 +65,10 @@ const Table = () => {
     amount: "",
     fyYear: "",
     month: "",
-    employeeId: "",
+    employeeIds: "",
     particulars: "",
     date: null,
+    
   });
 
   const [headCats, setHeadCats] = useState([]);
@@ -122,54 +123,67 @@ const Table = () => {
     const fetchForms = async () => {
       try {
         let data = [];
-        if (filters.vehicleId) {
-          data = await getFormsByVehicleID(filters.vehicleId);
-        } else if (filters.headCategory) {
-          data = await getFormsByHeadCatName(filters.headCategory);
-        } else if (filters.subCategory) {
-          data = await getFormsBySubCatName(filters.subCategory);
-        } else if (filters.amount) {
-          data = await getFormsByAmount(filters.amount);
-        } else if (filters.fyYear) {
-          data = await getFormsByFyYear(filters.fyYear);
-        } else if (filters.month) {
-          data = await getFormsByMonth(filters.month);
-        } else if (filters.employeeId) {
-          data = await getFormsByEmployeeID(filters.employeeId);
-        } else if (filters.particulars) {
-          data = await getFormsByParticulars(filters.particulars);
-        } else if (filters.date) {
-          data = await getFormsByDate(format(filters.date, "dd-MM-yyyy"));
+        
+        // Construct filter criteria based on available filters
+        const activeFilters = Object.keys(filters).filter((key) => filters[key]);
+        
+        if (activeFilters.length === 0) {
+          data = await getforms(); // If no filters, fetch all forms
         } else {
-          data = await getforms();
+          if (filters.vehicleId) {
+            data = await getFormsByVehicleID(filters.vehicleId);
+          } else if (filters.headCategory) {
+            data = await getFormsByHeadCatName(filters.headCategory);
+          } else if (filters.subCategory) {
+            data = await getFormsBySubCatName(filters.subCategory);
+          } else if (filters.amount) {
+            data = await getFormsByAmount(filters.amount);
+          } else if (filters.fyYear) {
+            data = await getFormsByFyYear(filters.fyYear);
+          } else if (filters.month) {
+            data = await getFormsByMonth(filters.month);
+          } else if (filters.employeeIds) {
+            const employeeIds = Array.isArray(filters.employeeIds) 
+              ? filters.employeeIds 
+              : [filters.employeeIds];
+            
+            data = await getFormsByEmployeeIDs(employeeIds);
+          } else if (filters.particulars) {
+            data = await getFormsByParticulars(filters.particulars);
+          } else if (filters.date) {
+            data = await getFormsByDate(format(filters.date, "dd-MM-yyyy"));
+          }
         }
-
+  
+        // Format the response data for display
         const formattedData = data.map((form, index) => ({
           objectId: form._id,
           id: index + 1,
-          vehicleId:  form.vehicles?.map((vehicle) => vehicle.vehicle_id).join(", ") ||  "N/A",
+          vehicleId: form.vehicles?.map((vehicle) => vehicle.vehicle_id).join(", ") || "N/A",
           date: form.date,
           headCategory: form.head_cat?.head_cat_name || "N/A",
           subCategory: form.sub_cat?.sub_cat_name || "N/A",
           particulars: form.particulars,
           amount: form.TotalAmount,
-          pdfLink: form.files,
+          merged_pdf: form.merged_pdf,
           fyYear: form.fy_year?.fy_name || "N/A",
           month: form.month?.month_name || "N/A",
-          employeeId:
-            form.received_by?.map((emp) => emp.emp_id).join(", ") || "N/A",
-          departments: form.departments?.map((department) => department.dept_id).join(", ") ||  "N/A",
+          employeeIds: form.received_by?.map((emp) => emp.emp_id).join(", ") || "N/A",
+          departments: form.departments?.map((department) => department.dept_id).join(", ") || "N/A",
           bill_no: form.bill_no || "N/A",
         }));
-
-        setRows(formattedData);
+  
+        setRows(formattedData); // Set the formatted data to display
+  
       } catch (error) {
         console.error("Error fetching forms:", error);
+        // Show an error message to the user, optionally
       }
     };
-
+  
     fetchForms();
-  }, [filters]);
+  }, [filters]); // This will trigger fetch on filter change
+  
   
 
   const handlePdfGeneration = (rowData) => {
@@ -186,7 +200,7 @@ const Table = () => {
         ["Sub Category", rowData.subCategory || "N/A"],
         ["Vehicle ID", rowData.vehicleId || "N/A"],
         ["Departments", rowData.departments || "N/A"],
-        ["Employee ID", rowData.employeeId || "N/A"],
+        ["Employee ID", rowData.employeeIds || "N/A"],
         ["Particulars", rowData.particulars || "N/A"],
         ["Total Amount", rowData.amount || "N/A"],
         ["Financial Year", rowData.fyYear || "N/A"],
@@ -261,14 +275,14 @@ const columns = [
     headerClassName: "super-app-theme--header",
   },
   {
-    field: "pdfLink",
+    field: "merged_pdf",
     headerName: <b>PDF</b>,
     flex: 0.5,
     headerClassName: "super-app-theme--header",
     renderCell: (params) => (
       <IconButton
         component="a"
-        href={`http://localhost:1111/merged_pdfs/${params.value}`}
+        href={`http://localhost:1111/merged_pdf/${params.value}`}
         target="_blank"
         rel="noopener noreferrer"
       >
@@ -276,6 +290,7 @@ const columns = [
       </IconButton>
     ),
   },
+  
   {
     field: "generatePdf",
     headerName: <b>GEN PDF</b>,
@@ -316,7 +331,7 @@ const columns = [
       amount: "",
       fyYear: "",
       month: "",
-      employeeId: "",
+      employeeIds: "",
       particulars: "",
       date: null,
     });
@@ -446,25 +461,37 @@ const columns = [
               />
             </Grid>
             <Grid item xs={12} md={4}>
-              <Autocomplete
-                options={employees}
-                getOptionLabel={(option) =>
-                  option
-                    ? `${option.emp_id || ''} / ${option.emp_name || ''} / ${option.emp_designation || ''}`
-                    : ''
-                }
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    variant="standard"
-                    label="Employee"
-                  />
-                )}
-                value={employees.find(emp => emp.emp_id === filters.employeeId) || null}
-                onChange={(e, value) =>
-                  handleFilterChange(e, value?.emp_id || null, "employeeId")
-                }
-              />
+            <Autocomplete
+  multiple // Enables multi-select
+  options={employees}
+  getOptionLabel={(option) =>
+    option
+      ? `${option.emp_id || ''} / ${option.emp_name || ''} / ${option.emp_designation || ''}`
+      : ''
+  }
+  renderInput={(params) => (
+    <TextField
+      {...params}
+      variant="standard"
+      label="Employees"
+      placeholder="Select employees"
+    />
+  )}
+  value={employees.filter(emp => filters.employeeIds?.includes(emp.emp_id)) || []} // Match selected employee IDs
+  onChange={(e, value) => {
+    const selectedEmpIds = value.map(emp => emp.emp_id); // Extract selected employee IDs
+    
+    // Check if the field is cleared (empty array)
+    if (selectedEmpIds.length === 0) {
+      handleFilterChange(e, null, "employeeIds"); // Clear the filter when no IDs are selected
+    } else {
+      handleFilterChange(e, selectedEmpIds, "employeeIds"); // Update filter with selected IDs
+    }
+  }}
+  isOptionEqualToValue={(option, value) => option.emp_id === value.emp_id} // Ensure unique selection by emp_id
+/>
+
+
             </Grid>
 
             <Grid item xs={12} md={4}>

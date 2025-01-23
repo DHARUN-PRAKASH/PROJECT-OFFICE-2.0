@@ -207,13 +207,37 @@ export const getFormsByVehicleID = async (vehicleID) => {
 };
 
 // Function to get forms by employee ID
-export const getFormsByEmployeeID = async (empID) => {
+export const getFormsByEmployeeIDs = async (empIDs) => {
   try {
-    const response = await axios.get(`http://localhost:1111/getFormByEmployeeID/${empID}`);
+    // Convert empIDs (array) into a comma-separated string
+    const queryParam = empIDs.join(',');
+    const response = await axios.get(`http://localhost:1111/getFormsByEmployeeIDs`, {
+      params: {
+        emp_ids: queryParam, // Pass the comma-separated IDs as a query parameter
+      },
+    });
     return response.data;
   } catch (error) {
-    console.error('Error fetching forms by employee ID:', error);
+    console.error('Error fetching forms by employee IDs:', error);
     throw error;
+  }
+};
+
+// FILTER FOR BILL NO 
+
+export const getFormsByBillNos = async (billNos) => {
+  try {
+    // Join the bill numbers into a comma-separated string
+    const billNosString = billNos.join(',');
+
+    // Make the GET request with the bill_nos query parameter
+    const response = await axios.get(`http://localhost:1111/getFormsByBillNos?bill_nos=${billNosString}`);
+
+    // Return the response data (the forms)
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching forms by bill numbers:', error);
+    throw error; // Rethrow the error to handle it further up the chain
   }
 };
 

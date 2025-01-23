@@ -89,7 +89,8 @@ GET http://localhost:1111/getFormBySubCatName/Bus Maintenance
 GET http://localhost:1111/getFormByVehicleID/1
 
 ### GET FORM BY EMPLOYEE ID
-GET http://localhost:1111/getFormByEmployeeID/22AD105
+GET http://localhost:1111/getFormsByEmployeeIDs?emp_ids=22AD063
+Content-Type: application/json
 ### GET FORM DATA BY FY YEAR AND MONTH 
 GET http://localhost:1111/fy_year_month/2025/August
 
@@ -187,6 +188,11 @@ Content-Type: application/json
     "__v": 0
   }
 
-###
+### DATE FILTER
 GET http://localhost:1111/date_filter/01-01-2025/03-01-2025
+
+### FILTER FOR BILL NO
+
+GET http://localhost:1111/getFormsByBillNos?bill_nos=dvdvvd,1212
+
 

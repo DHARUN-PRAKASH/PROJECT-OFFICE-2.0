@@ -1,54 +1,58 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import SpeedDial from '@mui/material/SpeedDial';
-import SpeedDialIcon from '@mui/material/SpeedDialIcon';
-import SpeedDialAction from '@mui/material/SpeedDialAction';
+import Fab from '@mui/material/Fab';
 import AddCircleRoundedIcon from '@mui/icons-material/AddCircleRounded';
 import SummarizeIcon from '@mui/icons-material/Summarize';
-import { styled } from '@mui/material/styles';
-import ConsolidateAndSummary from './consolidate_summary';
-
-const CustomSpeedDialIcon = styled(SpeedDialIcon)(({ theme }) => ({
-  backgroundColor: '#32348c',
-  color: '#fff',
-  borderRadius: '50%',
-  padding: '17px',
-}));
+import { Box } from '@mui/material';
 
 const Dial = () => {
-  const [isDialogOpen, setDialogOpen] = useState(false);
   const navigate = useNavigate();
-
-  const handleOpenDialog = () => setDialogOpen(true);
-  const handleCloseDialog = () => setDialogOpen(false);
 
   const handleAddReportClick = () => {
     navigate('/form');
   };
 
-  const handleConsolidateAndSummary = () => {
+  const handleConsolidateAndSummaryClick = () => {
     navigate('/cs');
   };
 
   return (
-    <>
-      <SpeedDial
-        ariaLabel="SpeedDial basic example"
-        sx={{ position: 'fixed', bottom: 16, right: 25 }}
-        icon={<CustomSpeedDialIcon />}
+    <Box
+      sx={{
+        position: 'fixed',
+        bottom: 16,
+        right: 16,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+      }}
+    >
+      {/* Consolidate and Summary Button */}
+      <Fab
+        color="primary"
+        aria-label="Consolidate and Summary"
+        onClick={handleConsolidateAndSummaryClick}
+        sx={{
+          backgroundColor: '#32348c',
+          '&:hover': { backgroundColor: '#272a75' },
+        }}
       >
-        <SpeedDialAction
-          icon={<AddCircleRoundedIcon sx={{ color: '#32348c' }} />}
-          tooltipTitle="Add Report"
-          onClick={handleAddReportClick}
-        />
-        <SpeedDialAction
-          icon={<SummarizeIcon sx={{ color: '#32348c' }} />}
-          tooltipTitle="Consolidate and Summary"
-          onClick={handleConsolidateAndSummary}
-        />
-      </SpeedDial>
-    </>
+        <SummarizeIcon />
+      </Fab>
+
+      {/* Add Report Button */}
+      <Fab
+        color="primary"
+        aria-label="Add Report"
+        onClick={handleAddReportClick}
+        sx={{
+          backgroundColor: '#32348c',
+          '&:hover': { backgroundColor: '#272a75' },
+        }}
+      >
+        <AddCircleRoundedIcon />
+      </Fab>
+    </Box>
   );
 };
 

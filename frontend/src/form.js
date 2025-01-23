@@ -155,11 +155,20 @@ const Form = ({ handleClose }) => {
     return isFormComplete ? null : errors;
   };
 
+
   const formattedDate = date ? format(new Date(date), 'dd-MM-yyyy') : '';
 
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    // Validate the form before submitting
+    const errors = validateForm();
+
+    // If there are errors, return and don't proceed with submission
+    if (errors) {
+      return;
+    }
 
     // Create the form data object (excluding files)
     const formData = {
@@ -187,6 +196,9 @@ const Form = ({ handleClose }) => {
       setSnackbarMessage('Form submitted successfully!');
       setSnackbarSeverity('success');
       setSnackbarOpen(true);
+      setTimeout(() => {
+        navigate('/table');
+      }, 1000);
     } catch (error) {
       console.error('Error submitting form:', error.message);
       setSnackbarMessage('Error submitting form');
@@ -207,6 +219,8 @@ const Form = ({ handleClose }) => {
     setIsSubCatDisabled(true);
     setIsDepartmentDisabled(true);
     setIsVehicleDisabled(true);
+    setFiles([]);
+    setBills([]);
   };
 
   const handleBillChange = (index, field, value) => {
@@ -311,11 +325,14 @@ const Form = ({ handleClose }) => {
                           {...params}
                           fullWidth
                           sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
+                          error={!!errors.date} // Display error if there's an error for the 'date' field
+                          helperText={errors.date} // Display the error message for the 'date' field
                         />
                       )}
                     />
                   </LocalizationProvider>
                 </Grid>
+
               </Grid>
             </Grid>
 
@@ -413,7 +430,7 @@ const Form = ({ handleClose }) => {
             {/* Received By and Particulars */}
             <Grid item xs={12}>
               <Grid container spacing={2}>
-                <Grid item xs={6}>
+                <Grid item xs={12}>
                   <Autocomplete
                     multiple
                     options={employees}
@@ -434,8 +451,9 @@ const Form = ({ handleClose }) => {
                   />
                 </Grid>
 
-                <Grid item xs={6}>
+                <Grid item xs={12}>
                   <TextField
+                    multiline
                     fullWidth
                     label="Particulars"
                     value={particulars}
@@ -456,35 +474,40 @@ const Form = ({ handleClose }) => {
                     <Box key={index} mb={3}>
                       <Grid container spacing={2} alignItems="center">
                         {/* Bill Number */}
-                        <Grid item xs={4}>
+                        <Grid item xs={4} sm={4}>
                           <TextField
                             fullWidth
                             label="Bill Number"
                             value={bill.bill_no}
                             onChange={(e) => handleBillChange(index, "bill_no", e.target.value)}
-                            required
+                            error={!!errors[`bill_no_${index}`]} // Show error if there's a validation issue
+                            helperText={errors[`bill_no_${index}`]} // Display error message
                           />
                         </Grid>
+
                         {/* Amount */}
-                        <Grid item xs={4}>
+                        <Grid item xs={3} sm={4}>
                           <TextField
                             fullWidth
                             label="Amount"
                             type="number"
                             value={bill.amount}
                             onChange={(e) => handleBillChange(index, "amount", e.target.value)}
-                            required
+                            error={!!errors[`amount_${index}`]} // Show error if there's a validation issue
+                            helperText={errors[`amount_${index}`]} // Display error message
                           />
                         </Grid>
+
                         {/* Upload Files */}
-                        <Grid item xs={4}>
+                        <Grid item xs={3} sm={2}>
                           <Button
-                            variant="outlined"
+                            variant="contained"
                             component="label"
                             fullWidth
                             startIcon={<UploadFileIcon />}
+                            sx={{ backgroundColor: '#32348c' }}
                           >
-                            Upload Files
+                            Upload
                             <input
                               type="file"
                               multiple
@@ -494,57 +517,60 @@ const Form = ({ handleClose }) => {
                             />
                           </Button>
                         </Grid>
+                        {/* Delete Button */}
+                        <Grid item xs={3} sm={2}>
+                          <Button
+                            variant="contained"
+                            component="label"
+                            fullWidth
+                            startIcon={<DeleteIcon />}
+                            onClick={() => removeBill(index)}
+                            disabled={bills.length === 1} // Prevent removing the last bill
+                            color="error"
+                          >
+                            Delete
+                          </Button>
+                        </Grid>
                       </Grid>
 
                       {/* Files Chips */}
                       <Box mt={1}>
-  {bills[index]?.files?.length > 0 ? (
-    bills[index].files.map((file, fileIndex) => (
-      <Chip
-        key={fileIndex}
-        label={file.name || file}
-        onDelete={() => handleFileDelete(index, fileIndex)}
-        sx={{ mr: 1, mb: 1 }}
-      />
-    ))
-  ) : (
-    <Typography variant="body2" color="textSecondary">
-      No files uploaded.
-    </Typography>
-  )}
-</Box>
+                        {bills[index]?.files?.length > 0 ? (
+                          bills[index].files.map((file, fileIndex) => (
+                            <Chip
+                              key={fileIndex}
+                              label={file.name || file}
+                              onDelete={() => handleFileDelete(index, fileIndex)}
+                              sx={{ mr: 1, mb: 1 }}
+                            />
+                          ))
+                        ) : (
+                          <Typography variant="body2" color="textSecondary">
+                            No files uploaded.
+                          </Typography>
+                        )}
+                      </Box>
 
-
-                      {/* Divider */}
                       <Divider sx={{ my: 2 }} />
 
-                      {/* Remove Bill Button */}
-                      <Box textAlign="right">
-                        <IconButton
-                          onClick={() => removeBill(index)}
-                          disabled={bills.length === 1} // Prevent removing the last bill
-                          sx={{ color: "error.main" }}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Box>
                     </Box>
                   ))}
 
                   {/* Add New Bill Button */}
-                  <Box textAlign="center">
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <Button
-                      variant="contained"
                       startIcon={<AddCircleOutlineIcon />}
                       onClick={addNewBill}
-                      sx={{ mb: 2 }}
+                      sx={{ mb: 2, color: '#32348c' }}
                     >
-                      Add New Bill
+                      Add Bill
                     </Button>
                   </Box>
+
                 </Grid>
               </Grid>
             </Grid>
+
 
             {/* Submit and Clear Buttons */}
             <Grid item xs={12}>
