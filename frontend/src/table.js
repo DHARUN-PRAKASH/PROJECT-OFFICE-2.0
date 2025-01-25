@@ -7,7 +7,7 @@ import {
   Grid,
   Paper,
   Typography,
-  Button,
+  Button,Chip
 } from "@mui/material";
 import {
   getFormsByVehicleID,
@@ -27,6 +27,7 @@ import {
   getVehicle,
   getFyYear,
   deleteFormById,
+  getFormsByBillNos,
   getFiscalYears
 } from "./axios";
 import Dash from "./dash";
@@ -68,8 +69,9 @@ const Table = () => {
     employeeIds: "",
     particulars: "",
     date: null,
-    
+    bill: "",   
   });
+
 
   const [headCats, setHeadCats] = useState([]);
   const [subCats, setSubCats] = useState([]);
@@ -77,6 +79,7 @@ const Table = () => {
   const [employees, setEmployees] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [fyYears, setFyYears] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -111,7 +114,6 @@ const Table = () => {
 
     fetchDropdownData();
   }, []);
-
   const handleFilterChange = (e, value, name) => {
     setFilters((prevFilters) => ({
       ...prevFilters,
@@ -119,17 +121,21 @@ const Table = () => {
     }));
   };
 
+
+  // Fetch data based on filters
   useEffect(() => {
     const fetchForms = async () => {
       try {
+        setIsLoading(true);
         let data = [];
-        
-        // Construct filter criteria based on available filters
+
+        // Construct filter criteria
         const activeFilters = Object.keys(filters).filter((key) => filters[key]);
-        
         if (activeFilters.length === 0) {
-          data = await getforms(); // If no filters, fetch all forms
-        } else {
+          data = await getforms();
+          console.log("Data fetched without filters:", data);
+        }
+        else {
           if (filters.vehicleId) {
             data = await getFormsByVehicleID(filters.vehicleId);
           } else if (filters.headCategory) {
@@ -143,57 +149,58 @@ const Table = () => {
           } else if (filters.month) {
             data = await getFormsByMonth(filters.month);
           } else if (filters.employeeIds) {
-            const employeeIds = Array.isArray(filters.employeeIds) 
-              ? filters.employeeIds 
+            const employeeIds = Array.isArray(filters.employeeIds)
+              ? filters.employeeIds
               : [filters.employeeIds];
-            
             data = await getFormsByEmployeeIDs(employeeIds);
           } else if (filters.particulars) {
             data = await getFormsByParticulars(filters.particulars);
           } else if (filters.date) {
-            data = await getFormsByDate(format(filters.date, "dd-MM-yyyy"));
+            data = await getFormsByDate(format(filters.date, 'dd-MM-yyyy'));
+          } else if (filters.bill.length > 0) {
+            data = await getFormsByBillNos(filters.bill);
           }
         }
-  
+
         // Format the response data for display
         const formattedData = data.map((form, index) => ({
           objectId: form._id,
           id: index + 1,
-          vehicleId: form.vehicles?.map((vehicle) => vehicle.vehicle_id).join(", ") || "N/A",
+          vehicleId: form.vehicles?.map((vehicle) => vehicle.vehicle_id).join(', ') || 'N/A',
           date: form.date,
-          headCategory: form.head_cat?.head_cat_name || "N/A",
-          subCategory: form.sub_cat?.sub_cat_name || "N/A",
+          headCategory: form.head_cat?.head_cat_name || 'N/A',
+          subCategory: form.sub_cat?.sub_cat_name || 'N/A',
           particulars: form.particulars,
           amount: form.TotalAmount,
           merged_pdf: form.merged_pdf,
-          fyYear: form.fy_year?.fy_name || "N/A",
-          month: form.month?.month_name || "N/A",
-          employeeIds: form.received_by?.map((emp) => emp.emp_id).join(", ") || "N/A",
-          departments: form.departments?.map((department) => department.dept_id).join(", ") || "N/A",
-          bill_no: form.bill_no || "N/A",
+          fyYear: form.fy_year?.fy_name || 'N/A',
+          month: form.month?.month_name || 'N/A',
+          employeeIds: form.received_by?.map((emp) => emp.emp_id).join(', ') || 'N/A',
+          departments: form.departments?.map((department) => department.dept_id).join(', ') || 'N/A',
+          bill_no: form.bill_no || 'N/A',
         }));
-  
-        setRows(formattedData); // Set the formatted data to display
-  
+
+        setRows(formattedData);
       } catch (error) {
-        console.error("Error fetching forms:", error);
-        // Show an error message to the user, optionally
+        console.error('Error fetching forms:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
-  
+
     fetchForms();
-  }, [filters]); // This will trigger fetch on filter change
-  
-  
+  }, [filters]);
+
+
 
   const handlePdfGeneration = (rowData) => {
     try {
       const doc = new jsPDF();
-  
+
       // Set title
       doc.setFontSize(16);
       doc.text("Report", 105, 10, { align: "center" });
-  
+
       // Define field-value pairs with the required keys only
       const fields = [
         ["Head Category", rowData.headCategory || "N/A"],
@@ -206,10 +213,10 @@ const Table = () => {
         ["Financial Year", rowData.fyYear || "N/A"],
         ["Month", rowData.month || "N/A"]
       ];
-  
+
       // Initial Y position for the content
       let yPosition = 20;
-  
+
       // Iterate through fields and add to PDF
       fields.forEach(([field, value]) => {
         doc.setFontSize(12);
@@ -219,109 +226,109 @@ const Table = () => {
         doc.setFont("normal");
         yPosition += 10; // Increment Y position
       });
-  
+
       // Open PDF in a new tab
       const pdfOutput = doc.output("dataurlnewwindow"); // Generates and opens PDF in a new window
     } catch (error) {
       console.error("Error generating PDF:", error);
     }
   };
-  
-  
-  
+
+
+
   const isAdmin = sessionStorage.getItem('admin') === 'true';
 
-const columns = [
-  {
-    field: "id",
-    headerName: <b>S.No</b>,
-    flex: 0.5,
-    headerClassName: "super-app-theme--header",
-  },
-  {
-    field: "vehicleId",
-    headerName: <b>VEHICLE ID</b>,
-    flex: 1,
-    headerClassName: "super-app-theme--header",
-  },
-  {
-    field: "date",
-    headerName: <b>DATE</b>,
-    flex: 1,
-    headerClassName: "super-app-theme--header",
-  },
-  {
-    field: "headCategory",
-    headerName: <b>HEAD CATEGORY</b>,
-    flex: 1.5,
-    headerClassName: "super-app-theme--header",
-  },
-  {
-    field: "subCategory",
-    headerName: <b>SUB CATEGORY</b>,
-    flex: 1.5,
-    headerClassName: "super-app-theme--header",
-  },
-  {
-    field: "particulars",
-    headerName: <b>PARTICULARS</b>,
-    flex: 1.5,
-    headerClassName: "super-app-theme--header",
-  },
-  {
-    field: "amount",
-    headerName: <b>TOTAL AMOUNT</b>,
-    flex: 1,
-    headerClassName: "super-app-theme--header",
-  },
-  {
-    field: "merged_pdf",
-    headerName: <b>PDF</b>,
-    flex: 0.5,
-    headerClassName: "super-app-theme--header",
-    renderCell: (params) => (
-      <IconButton
-        component="a"
-        href={`http://localhost:1111/merged_pdf/${params.value}`}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        <PictureAsPdfRoundedIcon />
-      </IconButton>
-    ),
-  },
-  
-  {
-    field: "generatePdf",
-    headerName: <b>GEN PDF</b>,
-    flex: 0.7,
-    headerClassName: "super-app-theme--header",
-    renderCell: (params) => (
-      <IconButton onClick={() => handlePdfGeneration(params.row)}>
-        <PreviewRoundedIcon />
-      </IconButton>
-    ),
-  },
-  isAdmin && {
-    field: "actions",
-    headerName: <b>ACTIONS</b>,
-    flex: 1,
-    headerClassName: "super-app-theme--header",
-    renderCell: (params) => (
-      <div>
-        <IconButton onClick={() => handleEdit(params.row.objectId)}>
-          <EditIcon />
-        </IconButton>
+  const columns = [
+    {
+      field: "id",
+      headerName: <b>S.No</b>,
+      flex: 0.5,
+      headerClassName: "super-app-theme--header",
+    },
+    {
+      field: "vehicleId",
+      headerName: <b>VEHICLE ID</b>,
+      flex: 1,
+      headerClassName: "super-app-theme--header",
+    },
+    {
+      field: "date",
+      headerName: <b>DATE</b>,
+      flex: 1,
+      headerClassName: "super-app-theme--header",
+    },
+    {
+      field: "headCategory",
+      headerName: <b>HEAD CATEGORY</b>,
+      flex: 1.5,
+      headerClassName: "super-app-theme--header",
+    },
+    {
+      field: "subCategory",
+      headerName: <b>SUB CATEGORY</b>,
+      flex: 1.5,
+      headerClassName: "super-app-theme--header",
+    },
+    {
+      field: "particulars",
+      headerName: <b>PARTICULARS</b>,
+      flex: 1.5,
+      headerClassName: "super-app-theme--header",
+    },
+    {
+      field: "amount",
+      headerName: <b>TOTAL AMOUNT</b>,
+      flex: 1,
+      headerClassName: "super-app-theme--header",
+    },
+    {
+      field: "merged_pdf",
+      headerName: <b>PDF</b>,
+      flex: 0.5,
+      headerClassName: "super-app-theme--header",
+      renderCell: (params) => (
         <IconButton
-          onClick={() => handleDelete(params.row.objectId)}
-          color="error"
+          component="a"
+          href={`http://localhost:1111/merged_pdf/${params.value}`}
+          target="_blank"
+          rel="noopener noreferrer"
         >
-          <DeleteIcon />
+          <PictureAsPdfRoundedIcon />
         </IconButton>
-      </div>
-    ),
-  },
-].filter(Boolean); // Remove undefined columns if not admin
+      ),
+    },
+
+    {
+      field: "generatePdf",
+      headerName: <b>GEN PDF</b>,
+      flex: 0.7,
+      headerClassName: "super-app-theme--header",
+      renderCell: (params) => (
+        <IconButton onClick={() => handlePdfGeneration(params.row)}>
+          <PreviewRoundedIcon />
+        </IconButton>
+      ),
+    },
+    isAdmin && {
+      field: "actions",
+      headerName: <b>ACTIONS</b>,
+      flex: 1,
+      headerClassName: "super-app-theme--header",
+      renderCell: (params) => (
+        <div>
+          <IconButton onClick={() => handleEdit(params.row.objectId)}>
+            <EditIcon />
+          </IconButton>
+          <IconButton
+            onClick={() => handleDelete(params.row.objectId)}
+            color="error"
+          >
+            <DeleteIcon />
+          </IconButton>
+        </div>
+      ),
+    },
+  ].filter(Boolean); // Remove undefined columns if not admin
 
   const handleClear = () => {
     setFilters({
@@ -334,6 +341,7 @@ const columns = [
       employeeIds: "",
       particulars: "",
       date: null,
+      bill: ""
     });
   };
 
@@ -351,6 +359,33 @@ const columns = [
     navigate(`/update/${objectId}`);
   };
 
+
+  // Handle adding a new bill number
+  const handleAddBill = (event) => {
+    if (event.key === 'Enter' && event.target.value.trim() !== '') {
+      event.preventDefault();
+      const value = event.target.value.trim();
+      if (!filters.bill.includes(value)) {
+        setFilters((prev) => ({
+          ...prev,
+          bill: [...prev.bill, value],
+        }));
+      }
+      event.target.value = '';
+    }
+  };
+
+  const handleDeleteBill = (billToDelete) => {
+    setFilters((prev) => {
+      const updatedBills = prev.bill.filter((bill) => bill !== billToDelete);
+      return {
+        ...prev,
+        bill: updatedBills.length > 0 ? updatedBills : "", // Set to '' if no bills remain
+      };
+    });
+  };
+  
+  
   return (
     <div>
       <Dash />
@@ -461,35 +496,35 @@ const columns = [
               />
             </Grid>
             <Grid item xs={12} md={4}>
-            <Autocomplete
-  multiple // Enables multi-select
-  options={employees}
-  getOptionLabel={(option) =>
-    option
-      ? `${option.emp_id || ''} / ${option.emp_name || ''} / ${option.emp_designation || ''}`
-      : ''
-  }
-  renderInput={(params) => (
-    <TextField
-      {...params}
-      variant="standard"
-      label="Employees"
-      placeholder="Select employees"
-    />
-  )}
-  value={employees.filter(emp => filters.employeeIds?.includes(emp.emp_id)) || []} // Match selected employee IDs
-  onChange={(e, value) => {
-    const selectedEmpIds = value.map(emp => emp.emp_id); // Extract selected employee IDs
-    
-    // Check if the field is cleared (empty array)
-    if (selectedEmpIds.length === 0) {
-      handleFilterChange(e, null, "employeeIds"); // Clear the filter when no IDs are selected
-    } else {
-      handleFilterChange(e, selectedEmpIds, "employeeIds"); // Update filter with selected IDs
-    }
-  }}
-  isOptionEqualToValue={(option, value) => option.emp_id === value.emp_id} // Ensure unique selection by emp_id
-/>
+              <Autocomplete
+                multiple // Enables multi-select
+                options={employees}
+                getOptionLabel={(option) =>
+                  option
+                    ? `${option.emp_id || ''} / ${option.emp_name || ''} / ${option.emp_designation || ''}`
+                    : ''
+                }
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    variant="standard"
+                    label="Employees"
+                    placeholder="Select employees"
+                  />
+                )}
+                value={employees.filter(emp => filters.employeeIds?.includes(emp.emp_id)) || []} // Match selected employee IDs
+                onChange={(e, value) => {
+                  const selectedEmpIds = value.map(emp => emp.emp_id); // Extract selected employee IDs
+
+                  // Check if the field is cleared (empty array)
+                  if (selectedEmpIds.length === 0) {
+                    handleFilterChange(e, null, "employeeIds"); // Clear the filter when no IDs are selected
+                  } else {
+                    handleFilterChange(e, selectedEmpIds, "employeeIds"); // Update filter with selected IDs
+                  }
+                }}
+                isOptionEqualToValue={(option, value) => option.emp_id === value.emp_id} // Ensure unique selection by emp_id
+              />
 
 
             </Grid>
@@ -507,6 +542,36 @@ const columns = [
                 fullWidth
               />
             </Grid>
+            <Grid item xs={12} md={4}>
+      {/* Bill Number Filter with Chips */}
+        <Autocomplete
+          multiple
+          freeSolo
+          variant="standard"
+          options={[]}
+          value={filters.bill}
+          renderTags={(value, getTagProps) =>
+            value.map((option, index) => (
+              <Chip
+                key={option}
+                label={option}
+                {...getTagProps({ index })}
+                onDelete={() => handleDeleteBill(option)}
+              />
+            ))
+          }
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              variant="standard"z
+              label="Filter by Bill Numbers"
+              placeholder="Type and press Enter"
+              onKeyDown={handleAddBill}
+            />
+          )}
+        />
+            </Grid>
+
             <Grid item xs={12} md={4}>
               <LocalizationProvider dateAdapter={AdapterDateFns}>
                 <DesktopDatePicker
@@ -556,6 +621,8 @@ const columns = [
         </Paper>
       </div>
       <Dial />
+
+      {isLoading && <p>Loading...</p>}
     </div>
   );
 };

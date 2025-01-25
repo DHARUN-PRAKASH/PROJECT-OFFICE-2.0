@@ -246,9 +246,9 @@ const ConsolidateAndSummary = () => {
         const item = data[i];
 
         // Add a page break before each new entry
-        if (i > 0) {
-          pdfDoc.addPage();
-        }
+        // if (i > 0) {
+        //   pdfDoc.addPage();
+        // }
 
         // Create a new PDF page for the item
         const itemDoc = new jsPDF();

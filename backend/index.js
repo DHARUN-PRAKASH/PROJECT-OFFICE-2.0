@@ -662,77 +662,91 @@ app.delete('/erase/:id', async (request, response) => {
 app.put('/modify', upload.array('files'), async (req, res) => {
     try {
         // Extract form fields from req.body
-        const { _id, fy_year, month, head_cat, sub_cat, date, received_by, particulars, bill_no, departments, amount, vehicles } = req.body;
+        const {
+            _id,
+            fy_year,
+            month,
+            head_cat,
+            sub_cat,
+            date,
+            received_by,
+            particulars,
+            bills,
+            departments,
+            vehicles
+        } = req.body;
 
-        // Function to safely parse JSON fields
+        // Safely parse nested fields
         const safeJsonParse = (data) => {
             try {
                 return JSON.parse(data);
             } catch (error) {
-                return []; // Return an empty array or handle as appropriate
+                return null; // Return null if parsing fails
             }
         };
 
         // Parse JSON strings
-        const parsedFy_year = safeJsonParse(fy_year || '[]');
-        const parsedMonth = safeJsonParse(month || '[]');
-        const parsedHeadCat = safeJsonParse(head_cat || '[]');
-        const parsedSubCat = safeJsonParse(sub_cat || '[]');
-        const parsedReceivedBy = safeJsonParse(received_by || '[]');
-        const parsedDepartments = safeJsonParse(departments || '[]');
-        const parsedVehicles = safeJsonParse(vehicles || '[]');
+        const parsedFy_year = safeJsonParse(fy_year);
+        const parsedMonth = safeJsonParse(month);
+        const parsedHeadCat = safeJsonParse(head_cat);
+        const parsedSubCat = safeJsonParse(sub_cat);
+        const parsedReceivedBy = safeJsonParse(received_by);
+        const parsedDepartments = safeJsonParse(departments);
+        const parsedVehicles = safeJsonParse(vehicles);
+        const parsedBills = safeJsonParse(bills);
 
-        // Check if the request body contains an ID
+        // Validate required fields
         if (!_id) {
             return res.status(400).json({ message: 'ID is required for updating the form.' });
         }
 
-        // Process files (e.g., merge PDFs)
-        let outputFileName = null;
+        // Process uploaded files and merge them if necessary
+        let mergedPdfFileName = null;
         if (req.files && req.files.length > 0) {
-            const billNumber = bill_no || 'unknown';
+            const billNumbers = parsedBills.map((bill) => bill.bill_no).join('_');
             const todayDate = date || new Date().toISOString().split('T')[0];
             const randomNumber = Math.floor(Math.random() * 1000);
-            outputFileName = `${billNumber}_${todayDate}_${randomNumber}.pdf`;
-            const outputPath = path.join(__dirname, 'public', 'merged_pdf', outputFileName);
+            mergedPdfFileName = `${billNumbers}_${todayDate}_${randomNumber}.pdf`;
+            const outputPath = path.join(__dirname, 'public', 'merged_pdf', mergedPdfFileName);
 
             await mergeFilesToPdf(req.files, outputPath);
         }
 
+        // Build the updated form object
+        const updateData = {
+            fy_year: parsedFy_year,
+            month: parsedMonth,
+            head_cat: parsedHeadCat,
+            sub_cat: parsedSubCat,
+            date,
+            received_by: parsedReceivedBy,
+            particulars,
+            departments: parsedDepartments,
+            vehicles: parsedVehicles,
+            bills: parsedBills,
+            merged_pdf: mergedPdfFileName || undefined, // Update only if a new PDF is merged
+            uploads: req.files ? req.files.map((file) => file.originalname) : undefined // Update if files are uploaded
+        };
+
         // Find and update the form by ID
-        const updatedForm = await form.findByIdAndUpdate(
-            _id,
-            {
-                fy_year: parsedFy_year,
-                month: parsedMonth,
-                head_cat: parsedHeadCat,
-                sub_cat: parsedSubCat,
-                date,
-                received_by: parsedReceivedBy,
-                particulars,
-                bill_no,
-                departments: parsedDepartments,
-                amount,
-                vehicles: parsedVehicles,
-                files: outputFileName ? outputFileName : undefined, // Update the files field only if there is a new file
-                uploads: req.files ? req.files.map(file => file.originalname) : undefined // Update uploads field if files are uploaded
-            },
-            { new: true, runValidators: true } // Return the updated document and run schema validators
-        );
+        const updatedForm = await form.findByIdAndUpdate(_id, updateData, {
+            new: true, // Return the updated document
+            runValidators: true // Ensure schema validators are applied
+        });
 
         // Check if the form was found and updated
         if (!updatedForm) {
             return res.status(404).json({ message: 'Form not found.' });
         }
 
-        // Return the updated form data
+        // Respond with the updated form data
         res.status(200).json(updatedForm);
-
     } catch (error) {
         console.error('Error updating form:', error);
         res.status(500).json({ message: 'Server error', error });
     }
 });
+
 
   
 
