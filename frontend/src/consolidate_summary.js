@@ -250,98 +250,105 @@ const ConsolidateAndSummary = () => {
         //   pdfDoc.addPage();
         // }
 
-        // Create a new PDF page for the item
         const itemDoc = new jsPDF();
 
         // Add centered "CONSOLIDATE REPORT" title with background color and white text
-        itemDoc.setFontSize(20); // Increased text size
-        itemDoc.setFont("helvetica", "bold"); // Bold text
+        itemDoc.setFontSize(22);
+        itemDoc.setFont("helvetica", "bold");
         itemDoc.setTextColor(255, 255, 255);
-        itemDoc.setFillColor(50, 52, 140); // #32348c
-        itemDoc.rect(0, 0, 210, 25, "F"); // Reduced height
-        itemDoc.text(`CONSOLIDATE REPORT ${i + 1}`, 105, 17, {
-          align: "center",
-        });
-
-        // Box Data with Improved UI
-        const boxData = [
+        itemDoc.setFillColor(50, 52, 140);
+        itemDoc.rect(0, 0, 210, 25, "F");
+        itemDoc.text(`CONSOLIDATE REPORT ${i + 1}`, 105, 17, { align: "center" });
+        
+        // Prepare data for sections
+        const generalInfo = [
+          ["Field", "Value"],
           ["Particulars:", item.particulars || "N/A"],
           ["Total Amount:", item.TotalAmount || "N/A"],
           ["Head Cat:", item.head_cat ? item.head_cat.head_cat_name : "N/A"],
           ["Sub Cat:", item.sub_cat ? item.sub_cat.sub_cat_name : "N/A"],
-          [
-            "Departments:",
-            item.departments
-              ? item.departments.dept_full_name
-              : "N/A",
-          ],
-          [
-            "Vehicles:",
-            item.vehicles && item.vehicles.length > 0
-              ? item.vehicles
-                  .map(
-                    (vehicle) =>
-                      `${vehicle.vehicle_name} (ID: ${vehicle.vehicle_id}, Number: ${vehicle.vehicle_number}, Reg No: ${vehicle.vehicle_reg_number})`
-                  )
-                  .join("; ")
-              : "N/A",
-          ],
-          [
-            "Bills:",
-            item.bills && item.bills.length > 0
-              ? item.bills
-                  .map((bill) => `Bill No: ${bill.bill_no}, Amount: ${bill.amount}`)
-                  .join("; ")
-              : "N/A",
-          ],
         ];
         
-
-        itemDoc.setFontSize(12);
-        itemDoc.setTextColor(50, 50, 50);
-        itemDoc.setFont("helvetica", "normal"); // Regular text for content
-
-        // Center the box data on the page
+        const departments = item.departments && item.departments.length > 0
+          ? [["S.No", "Department"], ...item.departments.map((dept, index) => [`${index + 1}.`, dept.dept_full_name || "N/A"])]
+          : null;
+        
+        const vehicles = item.vehicles && item.vehicles.length > 0
+          ? [["S.No", "Name", "ID", "Number", "Reg No"], ...item.vehicles.map((vehicle, index) => [
+              `${index + 1}.`,
+              vehicle.vehicle_name || "N/A",
+              vehicle.vehicle_id || "N/A",
+              vehicle.vehicle_number || "N/A",
+              vehicle.vehicle_reg_number || "N/A",
+            ])]
+          : null;
+        
+        const bills = item.bills && item.bills.length > 0
+          ? [["S.No", "Bill No", "Amount"], ...item.bills.map((bill, index) => [
+              `${index + 1}.`,
+              bill.bill_no || "N/A",
+              bill.amount || "N/A",
+            ])]
+          : null;
+        
+        // Render each section
         const pageWidth = 210;
         const boxWidth = 190;
-        const boxHeight = 80; // Adjusted height
         const x = (pageWidth - boxWidth) / 2;
-        const y = 30; // Starting Y position
-
-        itemDoc.setFillColor(255, 255, 255); // No background
-        itemDoc.rect(x, y, boxWidth, boxHeight, "F"); // Box background
-
-        // Center the table within the box
-        itemDoc.autoTable({
-          body: boxData,
-          startY: y + 10, // Space from the top of the box
-          theme: "grid",
-          styles: {
-            cellPadding: 6,
-            fontSize: 12,
-            cellWidth: "auto",
-            valign: "top",
-          },
-          headStyles: { fillColor: [50, 52, 140], textColor: 255 },
-          bodyStyles: { textColor: 50 },
-          margin: { left: x + 10, right: 10 }, // Center the table
-          tableWidth: boxWidth - 20, // Adjust table to fit the box width with padding
-        });
-
+        let y = 40; // Starting lower to move "General Information" down
+        
+        // Helper function to render sections
+        function renderSection(title, data) {
+          // Render section header
+          itemDoc.setFontSize(16);
+          itemDoc.setFont("helvetica", "bold");
+          itemDoc.setTextColor(50, 52, 140);
+          itemDoc.text(title, x, y);
+        
+          // Render table
+          itemDoc.autoTable({
+            head: [data[0]], // First row as table header
+            body: data.slice(1), // Remaining rows as table body
+            startY: y + 10, // Increased spacing from title
+            headStyles: {
+              fillColor: [50, 52, 140], // Background color
+              textColor: 255, // White text
+              fontSize: 12,
+              fontStyle: "bold",
+            },
+            bodyStyles: { textColor: 50, fontSize: 10 },
+            theme: "grid",
+            margin: { left: 10, right: 10 },
+            tableWidth: boxWidth - 20,
+          });
+        
+          // Update Y position for the next section
+          y = itemDoc.lastAutoTable.finalY + 15;
+        }
+        
+        // Render "General Information"
+        renderSection("General Information", generalInfo);
+        
+        // Render "Departments" if available
+        if (departments) renderSection("Departments", departments);
+        
+        // Render "Vehicles" if available
+        if (vehicles) renderSection("Vehicles", vehicles);
+        
+        // Render "Bills" if available
+        if (bills) renderSection("Bills", bills);
+        
         // Convert the item PDF to a byte array
         const itemPdfBytes = itemDoc.output("arraybuffer");
-
+        
         // Load the item PDF into pdf-lib
         const loadedItemPdf = await PDFDocument.load(itemPdfBytes);
-
+        
         // Copy pages from the item PDF to the consolidated PDF
-        const itemPages = await pdfDoc.copyPages(
-          loadedItemPdf,
-          loadedItemPdf.getPageIndices()
-        );
-        itemPages.forEach((page) => {
-          pdfDoc.addPage(page);
-        });
+        const itemPages = await pdfDoc.copyPages(loadedItemPdf, loadedItemPdf.getPageIndices());
+        itemPages.forEach((page) => pdfDoc.addPage(page));
+             
+
 
         // Fetch and attach the additional PDF if available
         const fileUrl = `http://localhost:1111/merged_pdf/${item.merged_pdf}`;
@@ -363,19 +370,29 @@ const ConsolidateAndSummary = () => {
         }
       }
 
-      // Save the consolidated PDF
-      const consolidatedPdfBytes = await pdfDoc.save();
-      const consolidatedPdfBlob = new Blob([consolidatedPdfBytes], {
-        type: "application/pdf",
-      });
-      const consolidatedUrl = URL.createObjectURL(consolidatedPdfBlob);
-      const link = document.createElement("a");
-      link.href = consolidatedUrl;
-      link.download = "consolidated-report.pdf";
-      link.click();
-      URL.revokeObjectURL(consolidatedUrl);
-      handleClearConsolidate();
+//consolidated PDF Open in New Tab 
+const consolidatedPdfBytes = await pdfDoc.save();
+const consolidatedPdfBlob = new Blob([consolidatedPdfBytes], {
+  type: "application/pdf",
+});
+const consolidatedUrl = URL.createObjectURL(consolidatedPdfBlob);
 
+// Open the PDF in a new page
+window.open(consolidatedUrl, "_blank");
+
+      // Download the consolidated PDF 
+      // const consolidatedPdfBytes = await pdfDoc.save();
+      // const consolidatedPdfBlob = new Blob([consolidatedPdfBytes], {
+      //   type: "application/pdf",
+      // });
+      // const consolidatedUrl = URL.createObjectURL(consolidatedPdfBlob);
+      // const link = document.createElement("a");
+      // link.href = consolidatedUrl;
+      // link.download = "consolidated-report.pdf";
+      // link.click();
+      // URL.revokeObjectURL(consolidatedUrl);
+      // handleClearConsolidate();
+  
       // Show success Snackbar
       setSnackbarMessage("Consolidation PDF generated successfully.");
       setSnackbarSeverity("success");

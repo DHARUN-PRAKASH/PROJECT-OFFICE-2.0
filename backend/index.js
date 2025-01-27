@@ -659,9 +659,9 @@ app.delete('/erase/:id', async (request, response) => {
 
 
 // MODIFY FORM
-app.put('/modify', upload.array('files'), async (req, res) => {
+// PUT route for modifying a form
+app.put('/modify', upload.array('files', 10), async (req, res) => {
     try {
-        // Extract form fields from req.body
         const {
             _id,
             fy_year,
@@ -671,12 +671,12 @@ app.put('/modify', upload.array('files'), async (req, res) => {
             date,
             received_by,
             particulars,
-            bills,
             departments,
-            vehicles
+            vehicles,
+            bills
         } = req.body;
 
-        // Safely parse nested fields
+        // Helper to parse JSON safely
         const safeJsonParse = (data) => {
             try {
                 return JSON.parse(data);
@@ -685,8 +685,8 @@ app.put('/modify', upload.array('files'), async (req, res) => {
             }
         };
 
-        // Parse JSON strings
-        const parsedFy_year = safeJsonParse(fy_year);
+        // Parse JSON fields
+        const parsedFyYear = safeJsonParse(fy_year);
         const parsedMonth = safeJsonParse(month);
         const parsedHeadCat = safeJsonParse(head_cat);
         const parsedSubCat = safeJsonParse(sub_cat);
@@ -697,24 +697,53 @@ app.put('/modify', upload.array('files'), async (req, res) => {
 
         // Validate required fields
         if (!_id) {
-            return res.status(400).json({ message: 'ID is required for updating the form.' });
+            return res.status(400).json({ message: 'ID is required to modify the form.' });
         }
 
-        // Process uploaded files and merge them if necessary
+        // Process uploaded files
         let mergedPdfFileName = null;
         if (req.files && req.files.length > 0) {
             const billNumbers = parsedBills.map((bill) => bill.bill_no).join('_');
             const todayDate = date || new Date().toISOString().split('T')[0];
-            const randomNumber = Math.floor(Math.random() * 1000);
+            const randomNumber = Math.floor(Math.random() * 10000);
             mergedPdfFileName = `${billNumbers}_${todayDate}_${randomNumber}.pdf`;
-            const outputPath = path.join(__dirname, 'public', 'merged_pdf', mergedPdfFileName);
 
-            await mergeFilesToPdf(req.files, outputPath);
+            const outputPath = path.join(__dirname, 'public', 'merged_pdf', mergedPdfFileName);
+            const mergedPdfDoc = await PDFDocument.create();
+
+            for (const file of req.files.map((file) => path.join(__dirname, 'public/pdf', file.filename))) {
+                const ext = path.extname(file).toLowerCase();
+
+                if (['.png', '.jpeg', '.jpg'].includes(ext)) {
+                    const imageBuffer = await sharp(file).toBuffer();
+
+                    if (ext === '.jpg' || ext === '.jpeg') {
+                        const img = await mergedPdfDoc.embedJpg(imageBuffer);
+                        const page = mergedPdfDoc.addPage([img.width, img.height]);
+                        page.drawImage(img, { x: 0, y: 0 });
+                    } else if (ext === '.png') {
+                        const img = await mergedPdfDoc.embedPng(imageBuffer);
+                        const page = mergedPdfDoc.addPage([img.width, img.height]);
+                        page.drawImage(img, { x: 0, y: 0 });
+                    }
+                } else if (ext === '.pdf') {
+                    const pdfBytes = fs.readFileSync(file);
+                    const pdfDoc = await PDFDocument.load(pdfBytes);
+                    const copiedPages = await mergedPdfDoc.copyPages(pdfDoc, pdfDoc.getPageIndices());
+                    copiedPages.forEach((page) => mergedPdfDoc.addPage(page));
+                }
+            }
+
+            const mergedPdfBytes = await mergedPdfDoc.save();
+            fs.writeFileSync(outputPath, mergedPdfBytes);
         }
 
-        // Build the updated form object
+        // Calculate TotalAmount
+        const totalAmount = parsedBills.reduce((sum, bill) => sum + Number(bill.amount), 0);
+
+        // Build updated form data
         const updateData = {
-            fy_year: parsedFy_year,
+            fy_year: parsedFyYear,
             month: parsedMonth,
             head_cat: parsedHeadCat,
             sub_cat: parsedSubCat,
@@ -724,32 +753,28 @@ app.put('/modify', upload.array('files'), async (req, res) => {
             departments: parsedDepartments,
             vehicles: parsedVehicles,
             bills: parsedBills,
-            merged_pdf: mergedPdfFileName || undefined, // Update only if a new PDF is merged
-            uploads: req.files ? req.files.map((file) => file.originalname) : undefined // Update if files are uploaded
+            TotalAmount: totalAmount,
+            merged_pdf: mergedPdfFileName || undefined,
+            file: req.files ? req.files.map((file) => file.filename) : undefined // Update uploaded file names
         };
 
-        // Find and update the form by ID
+        // Update the form in the database
         const updatedForm = await form.findByIdAndUpdate(_id, updateData, {
             new: true, // Return the updated document
             runValidators: true // Ensure schema validators are applied
         });
 
-        // Check if the form was found and updated
+        // Check if the document was found and updated
         if (!updatedForm) {
             return res.status(404).json({ message: 'Form not found.' });
         }
 
-        // Respond with the updated form data
-        res.status(200).json(updatedForm);
+        res.status(200).json({ message: 'Form updated successfully', updatedForm });
     } catch (error) {
         console.error('Error updating form:', error);
-        res.status(500).json({ message: 'Server error', error });
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
-
-
-  
-
 
 // GET FORM BY ID 
 app.get('/getforms/:id', async (req, res) => {

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { TextField, Button, Autocomplete, Grid, Box, Typography, Chip, Snackbar, Alert, Paper, Divider, IconButton } from '@mui/material';
-import { useDropzone } from 'react-dropzone';
+import { TextField, Button, Autocomplete, Grid, Box, Typography, Chip, Snackbar, Alert, Divider } from '@mui/material';
 import { postform, getHeadCat, getSubCat, getMonth, getDepartment, getEmployee, getVehicle, getFyYear, submitForm } from './axios';
 import Dash from './dash';
 import { LocalizationProvider } from '@mui/x-date-pickers';
@@ -11,7 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import DeleteIcon from "@mui/icons-material/Delete";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
-import axios from 'axios';
+
 
 const Form = ({ handleClose }) => {
   const navigate = useNavigate();
@@ -46,6 +45,8 @@ const Form = ({ handleClose }) => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+
+  // DROP DOWN FETCHS
 
   useEffect(() => {
     const fetchData = async () => {
@@ -87,6 +88,8 @@ const Form = ({ handleClose }) => {
     fetchData();
   }, []);
 
+  // FEILD DISABLE LOGICS 
+
   useEffect(() => {
     if (sub_cat) {
       const subCatSplId = sub_cat.spl_id;
@@ -105,6 +108,8 @@ const Form = ({ handleClose }) => {
       }
     }
   }, [sub_cat, departmentsList, vehiclesList]);
+
+  //VALIDATION
 
   const [errors, setErrors] = useState({});
 
@@ -156,56 +161,56 @@ const Form = ({ handleClose }) => {
   };
 
 
-  const formattedDate = date ? format(new Date(date), 'dd-MM-yyyy') : '';
+    const formattedDate = date ? format(new Date(date), 'dd-MM-yyyy') : '';
 
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+    const handleSubmit = async (event) => {
+      event.preventDefault();
 
-    // Validate the form before submitting
-    const errors = validateForm();
+      // Validate the form before submitting
+      const errors = validateForm();
 
-    // If there are errors, return and don't proceed with submission
-    if (errors) {
-      return;
-    }
+      // If there are errors, return and don't proceed with submission
+      if (errors) {
+        return;
+      }
 
-    // Create the form data object (excluding files)
-    const formData = {
-      fy_year: JSON.stringify(fy_year),
-      month: JSON.stringify(month),
-      head_cat: JSON.stringify(head_cat),
-      sub_cat: JSON.stringify(sub_cat),
-      date: formattedDate,
-      received_by: JSON.stringify(received_by),
-      particulars: particulars,
-      departments: JSON.stringify(departments),
-      vehicles: JSON.stringify(vehicles),
-      bills: JSON.stringify(bills.map(bill => ({
-        bill_no: bill.bill_no,
-        amount: bill.amount,
-      }))),
+      // Create the form data object (excluding files)
+      const formData = {
+        fy_year: JSON.stringify(fy_year),
+        month: JSON.stringify(month),
+        head_cat: JSON.stringify(head_cat),
+        sub_cat: JSON.stringify(sub_cat),
+        date: formattedDate,
+        received_by: JSON.stringify(received_by),
+        particulars: particulars,
+        departments: JSON.stringify(departments),
+        vehicles: JSON.stringify(vehicles),
+        bills: JSON.stringify(bills.map(bill => ({
+          bill_no: bill.bill_no,
+          amount: bill.amount,
+        }))),
+      };
+
+      // Collect all the files from bills
+      const files = bills.flatMap(bill => bill.files);
+
+      try {
+        const response = await postform(formData, files);
+        console.log('Response:', response);
+        setSnackbarMessage('Form submitted successfully!');
+        setSnackbarSeverity('success');
+        setSnackbarOpen(true);
+        setTimeout(() => {
+          navigate('/table');
+        }, 1000);
+      } catch (error) {
+        console.error('Error submitting form:', error.message);
+        setSnackbarMessage('Error submitting form');
+        setSnackbarSeverity('error');
+        setSnackbarOpen(true);
+      }
     };
-
-    // Collect all the files from bills
-    const files = bills.flatMap(bill => bill.files);
-
-    try {
-      const response = await postform(formData, files);
-      console.log('Response:', response);
-      setSnackbarMessage('Form submitted successfully!');
-      setSnackbarSeverity('success');
-      setSnackbarOpen(true);
-      setTimeout(() => {
-        navigate('/table');
-      }, 1000);
-    } catch (error) {
-      console.error('Error submitting form:', error.message);
-      setSnackbarMessage('Error submitting form');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-    }
-  };
   const handleClear = () => {
     setFyYear(null);
     setMonth(null);
@@ -289,6 +294,7 @@ const Form = ({ handleClose }) => {
                       <TextField
                         {...params}
                         label="Fiscal Year"
+                        variant="filled"
                         error={!!errors.fy_year}
                         helperText={errors.fy_year || ''}
                         sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
@@ -306,6 +312,7 @@ const Form = ({ handleClose }) => {
                       <TextField
                         {...params}
                         label="Month"
+                        variant="filled"
                         error={!!errors.month}
                         helperText={errors.month || ''}
                         sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
@@ -323,6 +330,7 @@ const Form = ({ handleClose }) => {
                       renderInput={(params) => (
                         <TextField
                           {...params}
+                          variant="filled"
                           fullWidth
                           sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
                           error={!!errors.date} // Display error if there's an error for the 'date' field
@@ -357,6 +365,7 @@ const Form = ({ handleClose }) => {
                       <TextField
                         {...params}
                         label="Head Category"
+                        variant="filled"
                         error={!!errors.head_cat}
                         helperText={errors.head_cat || ''}
                         sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
@@ -375,6 +384,7 @@ const Form = ({ handleClose }) => {
                       <TextField
                         {...params}
                         label="Sub Category"
+                        variant="filled"
                         error={!!errors.sub_cat}
                         helperText={errors.sub_cat || ''}
                         sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
@@ -398,6 +408,7 @@ const Form = ({ handleClose }) => {
                   <TextField
                     {...params}
                     label="Departments"
+                    variant="filled"
                     error={!!errors.departments}
                     helperText={errors.departments || ''}
                     sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
@@ -417,6 +428,7 @@ const Form = ({ handleClose }) => {
                   <TextField
                     {...params}
                     label="Vehicles"
+                    variant="filled"
                     error={!!errors.vehicles}
                     helperText={errors.vehicles || ''}
                     sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
@@ -443,6 +455,7 @@ const Form = ({ handleClose }) => {
                       <TextField
                         {...params}
                         label="Received By"
+                        variant="filled"
                         error={!!errors.received_by}
                         helperText={errors.received_by || ''}
                         sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
@@ -456,6 +469,7 @@ const Form = ({ handleClose }) => {
                     multiline
                     fullWidth
                     label="Particulars"
+                    variant="filled"
                     value={particulars}
                     onChange={(e) => setParticulars(e.target.value)}
                     error={!!errors.particulars}
@@ -477,6 +491,7 @@ const Form = ({ handleClose }) => {
                         <Grid item xs={4} sm={4}>
                           <TextField
                             fullWidth
+                            variant="filled"
                             label="Bill Number"
                             value={bill.bill_no}
                             onChange={(e) => handleBillChange(index, "bill_no", e.target.value)}
@@ -491,6 +506,7 @@ const Form = ({ handleClose }) => {
                             fullWidth
                             label="Amount"
                             type="number"
+                            variant="filled"
                             value={bill.amount}
                             onChange={(e) => handleBillChange(index, "amount", e.target.value)}
                             error={!!errors[`amount_${index}`]} // Show error if there's a validation issue
