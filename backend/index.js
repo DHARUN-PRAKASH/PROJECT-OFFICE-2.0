@@ -791,6 +791,11 @@ app.get('/getforms/:id', async (req, res) => {
     }
   });
 
+//   TESTING 
+
+app.get('/', (req, res) => {
+    res.send('Welcome to the Drug Interaction API! Use /interactions or /interactions/single.');
+  });
 
  
   

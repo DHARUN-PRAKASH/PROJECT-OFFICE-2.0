@@ -7,7 +7,7 @@ import {
   Grid,
   Paper,
   Typography,
-  Button,Chip
+  Button, Chip
 } from "@mui/material";
 import {
   getFormsByVehicleID,
@@ -28,7 +28,8 @@ import {
   getFyYear,
   deleteFormById,
   getFormsByBillNos,
-  getFiscalYears
+  getFiscalYears,
+  dateFilter
 } from "./axios";
 import Dash from "./dash";
 import { PDFDocument, rgb } from "pdf-lib";
@@ -46,6 +47,8 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import IconButton from "@mui/material/IconButton";
 import { useNavigate } from "react-router-dom";
+import { DatePicker } from '@mui/x-date-pickers';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward'; // For the arrow icon
 
 // Define custom styling for column headers
 const useStyles = {
@@ -69,7 +72,9 @@ const Table = () => {
     employeeIds: "",
     particulars: "",
     date: null,
-    bill: "",   
+    bill: "",
+    fromDate:null,
+    toDate:null
   });
 
 
@@ -80,6 +85,8 @@ const Table = () => {
   const [vehicles, setVehicles] = useState([]);
   const [fyYears, setFyYears] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [fromDate, setFromDate] = useState(null);
+  const [toDate, setToDate] = useState(null);
 
   const navigate = useNavigate();
 
@@ -122,7 +129,8 @@ const Table = () => {
   };
 
 
-  // Fetch data based on filters
+
+  // Fetch forms based on filters
   useEffect(() => {
     const fetchForms = async () => {
       try {
@@ -134,8 +142,7 @@ const Table = () => {
         if (activeFilters.length === 0) {
           data = await getforms();
           console.log("Data fetched without filters:", data);
-        }
-        else {
+        } else {
           if (filters.vehicleId) {
             data = await getFormsByVehicleID(filters.vehicleId);
           } else if (filters.headCategory) {
@@ -160,6 +167,13 @@ const Table = () => {
           } else if (filters.bill.length > 0) {
             data = await getFormsByBillNos(filters.bill);
           }
+        }
+
+        // Apply date range filter if dates are selected
+        if (fromDate && toDate) {
+          const formattedFromDate = format(fromDate, 'dd-MM-yyyy');
+          const formattedToDate = format(toDate, 'dd-MM-yyyy');
+          data = await dateFilter(formattedFromDate, formattedToDate);
         }
 
         // Format the response data for display
@@ -189,14 +203,14 @@ const Table = () => {
     };
 
     fetchForms();
-  }, [filters]);
+  }, [filters, fromDate, toDate]);
 
 
 
   const handlePdfGeneration = (rowData) => {
     try {
       const doc = new jsPDF();
-  
+
       // Set title with background color and centered text
       doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
@@ -204,7 +218,7 @@ const Table = () => {
       doc.setFillColor(50, 52, 140);
       doc.rect(0, 0, 210, 15, "F"); // Header rectangle
       doc.text("Report", 105, 10, { align: "center" });
-  
+
       // Define field-value pairs with the required keys only
       const fields = [
         ["Head Category", rowData.headCategory || "N/A"],
@@ -217,10 +231,10 @@ const Table = () => {
         ["Financial Year", rowData.fyYear || "N/A"],
         ["Month", rowData.month || "N/A"]
       ];
-  
+
       // Initial Y position for the content
       let yPosition = 25;
-  
+
       // Field-value table header
       doc.setFontSize(12);
       doc.setTextColor(255, 255, 255);
@@ -229,32 +243,32 @@ const Table = () => {
       doc.text("Field", 15, yPosition + 7);
       doc.text("Value", 110, yPosition + 7);
       yPosition += 12;
-  
+
       // Field-value table rows
       fields.forEach(([field, value], index) => {
         // Alternate row color for better readability
         const isEvenRow = index % 2 === 0;
         doc.setFillColor(isEvenRow ? 240 : 255); // Light gray for even rows
         doc.rect(10, yPosition, 190, 10, "F"); // Row background
-  
+
         // Set text styles
         doc.setFont("helvetica", "bold"); // Bold for field names
         doc.setTextColor(50, 50, 50);
         doc.text(field, 15, yPosition + 7); // Field text
-  
+
         doc.setFont("helvetica", "normal"); // Normal for values
         doc.text(value.toString(), 110, yPosition + 7); // Value text
-  
+
         yPosition += 10; // Increment Y position for the next row
       });
-  
+
       // Open PDF in a new tab
       const pdfOutput = doc.output("dataurlnewwindow");
     } catch (error) {
       console.error("Error generating PDF:", error);
     }
   };
-  
+
 
 
   const isAdmin = sessionStorage.getItem('admin') === 'true';
@@ -362,8 +376,12 @@ const Table = () => {
       employeeIds: "",
       particulars: "",
       date: null,
-      bill: ""
+      bill: "",
+      fromDate:null,
+      toDate:null
     });
+    setFromDate(null);
+    setToDate(null);  
   };
 
   const handleDelete = async (id) => {
@@ -405,8 +423,8 @@ const Table = () => {
       };
     });
   };
-  
-  
+
+
   return (
     <div>
       <Dash />
@@ -564,47 +582,81 @@ const Table = () => {
               />
             </Grid>
             <Grid item xs={12} md={4}>
-      {/* Bill Number Filter with Chips */}
-        <Autocomplete
-          multiple
-          freeSolo
-          variant="standard"
-          options={[]}
-          value={filters.bill}
-          renderTags={(value, getTagProps) =>
-            value.map((option, index) => (
-              <Chip
-                key={option}
-                label={option}
-                {...getTagProps({ index })}
-                onDelete={() => handleDeleteBill(option)}
+              {/* Bill Number Filter with Chips */}
+              <Autocomplete
+                multiple
+                freeSolo
+                variant="standard"
+                options={[]}
+                value={filters.bill}
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => (
+                    <Chip
+                      key={option}
+                      label={option}
+                      {...getTagProps({ index })}
+                      onDelete={() => handleDeleteBill(option)}
+                    />
+                  ))
+                }
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    variant="standard" z
+                    label="Filter by Bill Numbers"
+                    placeholder="Type and press Enter"
+                    onKeyDown={handleAddBill}
+                  />
+                )}
               />
-            ))
-          }
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              variant="standard"z
-              label="Filter by Bill Numbers"
-              placeholder="Type and press Enter"
-              onKeyDown={handleAddBill}
-            />
-          )}
-        />
             </Grid>
 
             <Grid item xs={12} md={4}>
-              <LocalizationProvider dateAdapter={AdapterDateFns}>
-                <DesktopDatePicker
-                  label="Select Date"
-                  format="dd/MM/yyyy"
-                  value={filters.date || null}
-                  onChange={(newValue) =>
-                    handleFilterChange(null, newValue, "date")
-                  }
-                  renderInput={(params) => <TextField {...params} fullWidth />}
-                />
-              </LocalizationProvider>
+            <Grid container spacing={2}>
+      {/* Select Date */}
+      <Grid item xs={12} md={4}>
+        <LocalizationProvider dateAdapter={AdapterDateFns}>
+          <DesktopDatePicker
+            label="Select Date"
+            inputFormat="dd/MM/yyyy"
+            value={filters.date || null}
+            onChange={(newValue) => handleFilterChange(null, newValue, "date")}
+            renderInput={(params) => <TextField {...params} fullWidth />}
+          />
+        </LocalizationProvider>
+      </Grid>
+
+      {/* From Date and To Date */}
+      <Grid item xs={12} md={4} container alignItems="center" justifyContent="space-between">
+        <LocalizationProvider dateAdapter={AdapterDateFns}>
+          <Grid item xs={5}>
+            <DatePicker
+              label="From Date"
+              value={fromDate}
+              onChange={(newValue) => setFromDate(newValue)}
+              inputFormat="dd/MM/yyyy"
+              renderInput={(params) => <TextField {...params} fullWidth />}
+            />
+          </Grid>
+          
+          <Grid item xs={2} container justifyContent="center">
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <ArrowForwardIcon />
+            </Box>
+          </Grid>
+
+          <Grid item xs={5}>
+            <DatePicker
+              label="To Date"
+              value={toDate}
+              onChange={(newValue) => setToDate(newValue)}
+              inputFormat="dd/MM/yyyy"
+              renderInput={(params) => <TextField {...params} fullWidth />}
+            />
+          </Grid>
+        </LocalizationProvider>
+      </Grid>
+    </Grid>
               <Button
                 onClick={handleClear}
                 variant="contained"
