@@ -29,9 +29,15 @@ var employeeSchema = new mongoose.Schema({
 const employee = mongoose.model('employee', employeeSchema);
 
 // FY_YEAR SCHEMA
-var fy_yearSchema = new mongoose.Schema({
-    fy_id: { type: Boolean },
-    fy_name: { type: Number },
+const fy_yearSchema  = new mongoose.Schema({
+    fy_id: { type: Boolean },                  // Active or inactive FY year
+    fy_name: { type: String },                 // Example: "2022-2023"
+    months: [
+        {
+            month_name: { type: String },      // Example: "January", "February"
+            month_id: { type: Boolean }        // Active (true) or locked (false)
+        }
+    ]
 });
 const fy_year = mongoose.model('fy_year', fy_yearSchema);
 
@@ -54,9 +60,9 @@ var sub_catSchema = new mongoose.Schema({
 const sub_cat = mongoose.model('sub_cat', sub_catSchema);
 
 // MONTH SCHEMA
-var monthSchema = new mongoose.Schema({
-    month_id: { type: Boolean },
-    month_name: { type: String },
+const monthSchema = new mongoose.Schema({
+    month_id: { type: Boolean },  // Indicates active (true) or locked (false) status
+    month_name: { type: String }  // Example: "January", "February"
 });
 const month = mongoose.model('month', monthSchema);
 
@@ -74,6 +80,7 @@ const formSchema = new mongoose.Schema({
     fy_year: { type: Object },
     month: { type: Object },
     head_cat: { type: Object },
+    type: {type:Object},
     sub_cat: { type: Object },
     date: { type: String },
     received_by: { type: Array },

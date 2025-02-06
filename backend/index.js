@@ -73,6 +73,7 @@ app.post('/postform', upload.array('files', 10), async (req, res) => {
             fy_year,
             month,
             head_cat,
+            type,
             sub_cat,
             date,
             received_by,
@@ -88,6 +89,7 @@ app.post('/postform', upload.array('files', 10), async (req, res) => {
         // Parse JSON fields
         const parsedFyYear = JSON.parse(fy_year);
         const parsedMonth = JSON.parse(month);
+        const parsedType = JSON.parse(type);
         const parsedHeadCat = JSON.parse(head_cat);
         const parsedSubCat = JSON.parse(sub_cat);
         const parsedReceivedBy = JSON.parse(received_by);
@@ -148,6 +150,7 @@ app.post('/postform', upload.array('files', 10), async (req, res) => {
             fy_year: parsedFyYear,
             month: parsedMonth,
             head_cat: parsedHeadCat,
+            type: parsedType,
             sub_cat: parsedSubCat,
             date,
             received_by: parsedReceivedBy,
@@ -255,26 +258,21 @@ app.get('/getFormsByBillNos', async (req, res) => {
 
 app.get('/getfyyearoption', async (req, res) => {
     try {
-        // Fetch only the fy_year field from the documents
-        const data = await form.find({}, { fy_year: 1, _id: 0 }).exec();
+        // Fetch all documents from fy_year collection
+        const data = await fy_year.find({}, { _id: 0 }).exec();
 
-        // Extract fy_year values and remove duplicates based on fy_name
-        const uniqueFyYears = Array.from(
-            new Map(
-                data.map(doc => [doc.fy_year.fy_name, doc.fy_year])
-            ).values()
-        );
+        // Sort the data by fy_name in ascending order
+        const sortedFyYears = data.sort((a, b) => {
+            const [startA] = a.fy_name.split('-').map(Number);
+            const [startB] = b.fy_name.split('-').map(Number);
+            return startA - startB;
+        });
 
-        // Sort unique fy_year values by fy_name in ascending order
-        const sortedFyYears = uniqueFyYears.sort((a, b) => a.fy_name - b.fy_name);
-
-        // Map sorted fy_year values to the desired format
-        const formattedData = sortedFyYears.map(year => ({ fy_year: year }));
-
-        // Return the formatted data as a JSON array
-        res.json(formattedData);
+        // Return the sorted data as JSON
+        res.json(sortedFyYears);
     } catch (error) {
-        res.status(500).json({ error: 'Failed to retrieve fy_year' });
+        console.error('Error fetching financial years:', error);
+        res.status(500).json({ error: 'Failed to retrieve financial year data' });
     }
 });
 
@@ -341,7 +339,7 @@ app.get('/particulars/:given', async (req, res) => {
 // Get form by various filters FOR FY YEAR 
 app.get('/fy_year/:given', async (req, res) => {
     try {
-        const found = await form.find({ "fy_year.fy_name": { '$eq': Number(req.params.given) } });
+        const found = await form.find({ "fy_year.fy_name": { '$eq':req.params.given } });
         res.json(found);
     } catch (error) {
         res.status(500).json({ error: 'Failed to retrieve forms' });
@@ -376,6 +374,19 @@ app.get('/getFormByHeadCatName/:head_cat_name', async (req, res) => {
         res.status(500).json({ error: 'Failed to retrieve forms' });
     }
 });
+
+// FILTER FOR TYPE 
+
+app.get('/getFormByType/:type', async (req, res) => {
+    try {
+      const forms = await form.find({
+        type: req.params.type,
+      });
+      res.json(forms);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to retrieve forms' });
+    }
+  });
 
 app.get('/getFormBySubCatName/:sub_cat_name', async (req, res) => {
     try {
@@ -499,7 +510,8 @@ app.get('/getvehicle', async (req, res) => {
     }
 });
 
-// Get financial year
+// Get financial year FROM FY YEAR COLLECTION
+
 app.get('/getfy_year', async (req, res) => {
     try {
         const fy_year_data = await fy_year.find();
@@ -510,46 +522,22 @@ app.get('/getfy_year', async (req, res) => {
 });
 
 
-// TRUE FY YEAR ADMIN 
+// FY YEAR ADMIN 
 
+// Activate Fiscal Year (Set fy_id to true)
 app.post('/settruefyyear', async (req, res) => {
     let { fy_name } = req.body;
-  
-  
-    // Validate the input
-    if (typeof fy_name !== 'number') {
-      return res.status(400).send('Invalid input: fy_name must be a number');
-    }
-  
-    try {
-      // Find or create fiscal year
-      const fyYear = await fy_year.findOneAndUpdate(
-        { fy_name },
-        { fy_id: true },
-        { new: true, upsert: true } // upsert creates a new document if none is found
-      );
-  
-      res.json(fyYear);
-    } catch (err) {
-      console.error('Error processing request:', err);
-      res.status(500).send('Error processing request');
-    }
-  });
 
-  // FALSE FY YEAR ADMIN
-  app.post('/setfalsefyyear', async (req, res) => {
-    let { fy_name } = req.body;
-
-    // Validate the input
-    if (typeof fy_name !== 'number') {
-        return res.status(400).send('Invalid input: fy_name must be a number');
+    // Validate the input (must be a string)
+    if (typeof fy_name !== 'string' || !fy_name.trim()) {
+        return res.status(400).send('Invalid input: fy_name must be a non-empty string');
     }
 
     try {
-        // Find or create fiscal year and set fy_id to false
+        // Find or create fiscal year, set fy_id to true (active)
         const fyYear = await fy_year.findOneAndUpdate(
-            { fy_name },
-            { fy_id: false }, // Set fy_id to false
+            { fy_name: fy_name.trim() },
+            { fy_id: true },
             { new: true, upsert: true } // upsert creates a new document if none is found
         );
 
@@ -559,6 +547,32 @@ app.post('/settruefyyear', async (req, res) => {
         res.status(500).send('Error processing request');
     }
 });
+
+// Deactivate Fiscal Year (Set fy_id to false) 
+app.post('/setfalsefyyear', async (req, res) => {
+    let { fy_name } = req.body;
+
+    // Validate the input (must be a string)
+    if (typeof fy_name !== 'string' || !fy_name.trim()) {
+        return res.status(400).send('Invalid input: fy_name must be a non-empty string');
+    }
+
+    try {
+        // Find or create fiscal year, set fy_id to false (inactive)
+        const fyYear = await fy_year.findOneAndUpdate(
+            { fy_name: fy_name.trim() },
+            { fy_id: false },
+            { new: true, upsert: true } // upsert creates a new document if none is found
+        );
+
+        res.json(fyYear);
+    } catch (err) {
+        console.error('Error processing request:', err);
+        res.status(500).send('Error processing request');
+    }
+});
+
+// MONTH FOR ADMIN
 
  // TRUE MONTH ADMIN
 app.post('/setmonthtrue', async (req, res) => {
@@ -608,6 +622,80 @@ app.post('/setmonthfalse', async (req, res) => {
         res.status(500).send('Error processing request');
     }
 });
+
+// ADMIN MONTH ACTIVATION BASED ON FY YEAR
+app.post('/activateMonth', async (req, res) => {
+    const { fy_name, month_name } = req.body;
+
+    if (typeof fy_name !== 'string' || typeof month_name !== 'string') {
+        return res.status(400).send('Invalid input: fy_name and month_name must be strings');
+    }
+
+    try {
+        // Try to activate the month if it exists
+        const updatedFyYear = await fy_year.findOneAndUpdate(
+            { fy_name, "months.month_name": month_name },
+            { $set: { "months.$.month_id": true } },
+            { new: true }
+        );
+
+        // If the month doesn't exist, push it to the months array
+        if (!updatedFyYear) {
+            const fyExists = await fy_year.findOneAndUpdate(
+                { fy_name },
+                { $push: { months: { month_name, month_id: true } } },
+                { new: true, upsert: true }
+            );
+
+            return res.json(fyExists);
+        }
+
+        res.json(updatedFyYear);
+    } catch (err) {
+        console.error('Error processing request:', err);
+        res.status(500).send('Error processing request');
+    }
+});
+
+
+//ADMIN MONTH LOCK BASED ON FY YEAR
+
+// ADMIN MONTH LOCK BASED ON FY YEAR
+app.post('/lockMonth', async (req, res) => {
+    const { fy_name, month_name } = req.body;
+
+    if (typeof fy_name !== 'string' || typeof month_name !== 'string') {
+        return res.status(400).send('Invalid input: fy_name and month_name must be strings');
+    }
+
+    try {
+        // Try to lock the month if it exists
+        const updatedFyYear = await fy_year.findOneAndUpdate(
+            { fy_name, "months.month_name": month_name },
+            { $set: { "months.$.month_id": false } },
+            { new: true }
+        );
+
+        // If the month doesn't exist, push it as locked
+        if (!updatedFyYear) {
+            const fyExists = await fy_year.findOneAndUpdate(
+                { fy_name },
+                { $push: { months: { month_name, month_id: false } } },
+                { new: true, upsert: true }
+            );
+
+            return res.json(fyExists);
+        }
+
+        res.json(updatedFyYear);
+    } catch (err) {
+        console.error('Error processing request:', err);
+        res.status(500).send('Error processing request');
+    }
+});
+
+
+
 
 app.delete('/erase/:id', async (request, response) => {
     try {

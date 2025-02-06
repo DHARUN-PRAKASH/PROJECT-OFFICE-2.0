@@ -1,235 +1,274 @@
-import React, { useState, useEffect } from 'react';
-import { Typography, Container, Box, Card, CardContent, Button, FormControl, TextField } from '@mui/material';
-import { DesktopDatePicker } from '@mui/x-date-pickers';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import Dash from './dash';
+import React, { useState, useEffect } from "react";
 import {
-  fetchMonthData,
-  getFyYearStatus,
-  getMonthStatus,
+  Autocomplete,
+  TextField,
+  Button,
+  Snackbar,
+  Alert,
+  Box,
+  Typography,
+  Grid
+} from "@mui/material";
+import { DesktopDatePicker } from "@mui/x-date-pickers/DesktopDatePicker";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import LockIcon from "@mui/icons-material/Lock";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import {
+  getFyYearOptions,
+  activateMonth,
+  lockMonth,
   activateFyYear,
   lockFyYear,
-  activateMonth,
-  lockMonth
-} from './axios'; // Adjust the path as needed
+  getFyYearStatus
+} from "./axios";
+import { AdminTable } from "./adminTable";
+import Dash from "./dash";
 
 export const Admin = () => {
+  const [fyYears, setFyYears] = useState([]);
   const [selectedFyYear, setSelectedFyYear] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+  const [startYear, setStartYear] = useState(null);
+  const [endYear, setEndYear] = useState(null);
   const [isFyYearActive, setIsFyYearActive] = useState(false);
-  const [isMonthActive, setIsMonthActive] = useState(false);
-  const [cardsData, setCardsData] = useState([]);
+  const [refreshTable, setRefreshTable] = useState(false); // For refreshing the AdminTable
 
-  const fetchData = async () => {
+  useEffect(() => {
+    fetchFyYears();
+  }, []);
+
+  const fetchFyYears = async () => {
     try {
-      const response = await fetchMonthData();
-      setCardsData(response.data);
+      const data = await getFyYearOptions();
+      setFyYears(data);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error("Error fetching financial years:", error);
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const showSnackbar = (message, severity) => {
+    setSnackbar({ open: true, message, severity });
+  };
 
-  useEffect(() => {
-    const socket = new WebSocket('ws://localhost:1111/month-updates'); // Replace with your WebSocket endpoint
+  const handleActivateMonth = async () => {
+    if (!selectedFyYear || !selectedMonth) {
+      showSnackbar("Please select both Financial Year and Month", "error");
+      return;
+    }
+    try {
+      await activateMonth(selectedFyYear, selectedMonth);
+      showSnackbar("Month activated successfully", "success");
+      setRefreshTable((prev) => !prev); // Trigger AdminTable refresh
+    } catch (error) {
+      showSnackbar("Failed to activate month", "error");
+    }
+  };
 
-    socket.onmessage = (event) => {
-      const updatedMonthData = JSON.parse(event.data);
-      setCardsData(prevData => prevData.map(month =>
-        month.month_name === updatedMonthData.month_name ? updatedMonthData : month
-      ));
-    };
+  const handleLockMonth = async () => {
+    if (!selectedFyYear || !selectedMonth) {
+      showSnackbar("Please select both Financial Year and Month", "error");
+      return;
+    }
+    try {
+      await lockMonth(selectedFyYear, selectedMonth);
+      showSnackbar("Month locked successfully", "success");
+      setRefreshTable((prev) => !prev); // Trigger AdminTable refresh
+    } catch (error) {
+      showSnackbar("Failed to lock month", "error");
+    }
+  };
 
-    socket.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
+  const handleActivateFyYear = async () => {
+    if (!startYear || !endYear) {
+      showSnackbar("Please select both From Year and To Year", "error");
+      return;
+    }
+    try {
+      await activateFyYear(`${startYear.getFullYear()}-${endYear.getFullYear()}`);
+      showSnackbar("Fiscal Year Activated Successfully!", "success");
+      setIsFyYearActive(true);
+      fetchFyYears(); // Refresh Financial Year options
+      setRefreshTable((prev) => !prev); // Refresh AdminTable
+    } catch (error) {
+      showSnackbar("Failed to Activate Fiscal Year.", "error");
+    }
+  };
 
-    return () => {
-      socket.close();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (selectedFyYear) {
-      getFyYearStatus(selectedFyYear.getFullYear())
-        .then(response => {
-          setIsFyYearActive(response.data.fy_id);
-        })
-        .catch(error => {
-          console.error('Error fetching FY year status:', error);
-        });
-    } else {
+  const handleLockFyYear = async () => {
+    if (!startYear || !endYear) {
+      showSnackbar("Please select both From Year and To Year", "error");
+      return;
+    }
+    try {
+      await lockFyYear(`${startYear.getFullYear()}-${endYear.getFullYear()}`);
+      showSnackbar("Fiscal Year Locked Successfully!", "success");
       setIsFyYearActive(false);
-    }
-  }, [selectedFyYear]);
-
-  useEffect(() => {
-    if (selectedMonth) {
-      getMonthStatus(selectedMonth.toLocaleString('default', { month: 'long' }))
-        .then(response => {
-          setIsMonthActive(response.data.month_id);
-        })
-        .catch(error => {
-          console.error('Error fetching month status:', error);
-        });
-    } else {
-      setIsMonthActive(false);
-    }
-  }, [selectedMonth]);
-
-  const handleFyYearChange = (newValue) => {
-    setSelectedFyYear(newValue);
-  };
-
-  const handleMonthChange = (newValue) => {
-    setSelectedMonth(newValue);
-  };
-
-  const handleFyYearActivate = async () => {
-    if (!selectedFyYear) return;
-
-    setIsFyYearActive(true);
-
-    try {
-      await activateFyYear(selectedFyYear.getFullYear());
+      fetchFyYears(); // Refresh Financial Year options
+      setRefreshTable((prev) => !prev); // Refresh AdminTable
     } catch (error) {
-      console.error('Error activating FY year:', error);
-    }
-  };
-
-  const handleFyYearLock = async () => {
-    if (!selectedFyYear) return;
-
-    setIsFyYearActive(false);
-
-    try {
-      await lockFyYear(selectedFyYear.getFullYear());
-    } catch (error) {
-      console.error('Error locking FY year:', error);
-    }
-  };
-
-  const handleMonthActivate = async () => {
-    if (!selectedMonth) return;
-
-    setIsMonthActive(true);
-
-    try {
-      await activateMonth(selectedMonth.toLocaleString('default', { month: 'long' }));
-      await fetchData();
-    } catch (error) {
-      console.error('Error activating month:', error);
-    }
-  };
-
-  const handleMonthLock = async () => {
-    if (!selectedMonth) return;
-
-    setIsMonthActive(false);
-
-    try {
-      await lockMonth(selectedMonth.toLocaleString('default', { month: 'long' }));
-      await fetchData();
-    } catch (error) {
-      console.error('Error locking month:', error);
+      showSnackbar("Failed to Lock Fiscal Year.", "error");
     }
   };
 
   return (
-    <div>
-      <Dash />
-      <Container sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', marginBottom: '50px' }}>
-        <Box mt={5} p={3} boxShadow={3} borderRadius={5} sx={{ backgroundColor: 'white', width: '80vw', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <Typography variant="h4" sx={{color: 'white', backgroundColor: '#32348c', padding: '10px', borderRadius: '50px', textAlign: 'center', width: '100%' }}><b>ADMIN</b></Typography>
-
-          <Box sx={{ width: '100%', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', marginTop: '10px' }}>
-            <Card sx={{ width: '48%' }}>
-              <CardContent>
-                <LocalizationProvider dateAdapter={AdapterDateFns}>
-                  <FormControl sx={{ marginTop: 0, width: '100%' }}>
-                    <DesktopDatePicker
-                      views={['year']}
-                      label="Financial Year"
-                      value={selectedFyYear}
-                      onChange={handleFyYearChange}
-                      renderInput={(params) => <TextField {...params} />}
-                    />
-                  </FormControl>
-                </LocalizationProvider>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px' }}>
-                  <Button
-                    variant="contained"
-                    color="success"
-                    onClick={handleFyYearActivate}
-                    sx={{ width: '48%',borderRadius:'50px' }}
-                  >
-                    Activate
-                  </Button>
-                  <Button
-                    variant="contained"
-                    color="error"
-                    onClick={handleFyYearLock}
-                    sx={{ width: '48%',borderRadius:'50px' }}
-                  >
-                    Lock
-                  </Button>
-                </Box>
-              </CardContent>
-            </Card>
-            <Card sx={{ width: '48%' }}>
-              <CardContent>
-                <LocalizationProvider dateAdapter={AdapterDateFns}>
-                  <FormControl sx={{ marginTop: 0, width: '100%' }}>
-                    <DesktopDatePicker
-                      views={['month']}
-                      label="Month"
-                      value={selectedMonth}
-                      onChange={handleMonthChange}
-                      renderInput={(params) => <TextField {...params} />}
-                    />
-                  </FormControl>
-                </LocalizationProvider>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px' }}>
-                  <Button
-                    variant="contained"
-                    color="success"
-                    onClick={handleMonthActivate}
-                    sx={{ width: '48%',borderRadius:'50px' }}
-                  >
-                    Activate
-                  </Button>
-                  <Button
-                    variant="contained"
-                    color="error"
-                    onClick={handleMonthLock}
-                    sx={{ width: '48%' ,borderRadius:'50px'}}
-                  >
-                    Lock
-                  </Button>
-                </Box>
-              </CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
-
-              </Box>
-            </Card>
-          </Box>
-          <Box sx={{ width: '100%', display: 'flex', flexWrap: 'wrap', justifyContent: 'center' }}>
-            {cardsData.map((month, index) => (
-              <Card key={index} sx={{ borderRadius:'50px',width: '12%', marginBottom: '20px', marginLeft: '20px', marginRight: '10px', height: '5vh', backgroundColor: month.month_id ? '#1b5e20' : '#c62828' }}>
-                <CardContent style={{  display: 'flex', justifyContent: 'center', alignItems: 'center',padding:'10px' ,color:'white'}}>
-                  <Typography variant="body2"><b>{month.month_name}</b></Typography>
-                </CardContent>
-                
-              </Card>
-            ))}
-          </Box>
-          
+    <div>  
+      <Dash/>
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+      <Box sx={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 3, padding: 3,marginTop:'80px' }}>
+        {/* Left Card - Manage Financial Year */}
+        <Box
+          sx={{
+            width: { xs: "100%", md: "40%" },
+            boxShadow: 3,
+            p: 3,
+            borderRadius: 2,
+            backgroundColor: "white",
+          }}
+        >
+          <Typography variant="h6" gutterBottom sx={{ backgroundColor: "#32348C", color: "white", p: 1, borderRadius: 1 ,textAlign:'center'}}>
+            Manage Financial Year
+          </Typography>
+  
+          <Grid container spacing={2} alignItems="center"style={{marginTop:'1px'}} >
+            <Grid item xs={5}>
+              <DesktopDatePicker
+                views={["year"]}
+                label="From"
+                value={startYear}
+                onChange={setStartYear}
+                renderInput={(params) => <TextField {...params} fullWidth />}
+              />
+            </Grid>
+            <Grid item xs={2} sx={{ textAlign: "center" }} >
+              <ArrowForwardIcon />
+            </Grid>
+            <Grid item xs={5}>
+              <DesktopDatePicker
+                views={["year"]}
+                label="To"
+                value={endYear}
+                onChange={setEndYear}
+                renderInput={(params) => <TextField {...params} fullWidth />}
+              />
+            </Grid>
+          </Grid>
+  
+          <Grid container spacing={2} sx={{ mt: 2 }}>
+            <Grid item xs={6}>
+              <Button
+                variant="contained"
+                color="success"
+                fullWidth
+                startIcon={<CheckCircleIcon />}
+                onClick={handleActivateFyYear}
+                disabled={!startYear || !endYear}
+                style={{borderRadius:'50px'}}
+              >
+                Activate
+              </Button>
+            </Grid>
+            <Grid item xs={6}>
+              <Button
+                variant="contained"
+                color="error"
+                fullWidth
+                startIcon={<LockIcon />}
+                onClick={handleLockFyYear}
+                disabled={!startYear || !endYear}
+                style={{borderRadius:'50px'}}
+              >
+                Lock
+              </Button>
+            </Grid>
+          </Grid>
         </Box>
-      </Container>
+  
+        {/* Right Card - Manage Financial Month */}
+        <Box
+          sx={{
+            width: { xs: "100%", md: "40%" },
+            boxShadow: 3,
+            p: 3,
+            borderRadius: 2,
+            backgroundColor: "white",
+          }}
+        >
+          <Typography variant="h6" gutterBottom sx={{ backgroundColor: "#32348C", color: "white", p: 1, borderRadius: 1,textAlign:'center' }}>
+            Manage Financial Month
+          </Typography>
+  
+          <Grid container spacing={2} style={{marginTop:'1px'}}>
+            <Grid item xs={12} sm={6}>
+              <Autocomplete
+                options={fyYears}
+                getOptionLabel={(option) => option.fy_name}
+                onChange={(event, value) => setSelectedFyYear(value?.fy_name || null)}
+                renderInput={(params) => <TextField {...params} label="Financial Year" variant="outlined" fullWidth />}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <DesktopDatePicker
+                views={["month"]}
+                label="Select Month"
+                value={selectedMonth}
+                onChange={(newValue) =>
+                  setSelectedMonth(newValue ? new Intl.DateTimeFormat("en-US", { month: "long" }).format(newValue) : null)
+                }
+                renderInput={(params) => <TextField {...params} variant="outlined" fullWidth />}
+              />
+            </Grid>
+          </Grid>
+  
+          <Grid container spacing={2} sx={{ mt: 2 }}>
+            <Grid item xs={6}>
+              <Button
+                variant="contained"
+                color="success"
+                fullWidth
+                startIcon={<CheckCircleIcon />}
+                onClick={handleActivateMonth}
+                disabled={!selectedFyYear || !selectedMonth}
+                style={{borderRadius:'50px'}}
+              >
+                Activate
+              </Button>
+            </Grid>
+            <Grid item xs={6}>
+              <Button
+                variant="contained"
+                color="error"
+                fullWidth
+                startIcon={<LockIcon />}
+                onClick={handleLockMonth}
+                disabled={!selectedFyYear || !selectedMonth}
+                style={{borderRadius:'50px'}}
+              >
+                Lock
+              </Button>
+            </Grid>
+          </Grid>
+        </Box>
+      </Box>
+  
+      {/* Admin Table */}
+      <AdminTable key={refreshTable} />
+  
+      {/* Snackbar for Notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert severity={snackbar.severity}>{snackbar.message}</Alert>
+      </Snackbar>
+    </LocalizationProvider>
     </div>
+
   );
+  
+
 };

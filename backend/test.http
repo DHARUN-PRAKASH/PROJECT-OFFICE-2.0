@@ -71,7 +71,7 @@ GET http://localhost:1111/amount/11
 GET http://localhost:1111/particulars/hello
 
 ### GET FORM BY FY YEAR
-GET http://localhost:1111/fy_year/2025
+GET http://localhost:1111/fy_year/2022-2023
 
 ### GET FORM BY MONTH
 GET http://localhost:1111/month/April
@@ -88,6 +88,9 @@ GET http://localhost:1111/getFormBySubCatName/Bus Maintenance
 ### GET FORM BY VEHICLE ID
 GET http://localhost:1111/getFormByVehicleID/1
 
+### GET FORM BY TYPE
+GET http://localhost:1111/getFormByType/Type 3
+
 ### GET FORM BY EMPLOYEE ID
 GET http://localhost:1111/getFormsByEmployeeIDs?emp_ids=22AD063
 Content-Type: application/json
@@ -99,7 +102,8 @@ POST  http://localhost:1111/settruefyyear
 Content-Type: application/json
 
 {
-    "fy_name":2026
+    "fy_name":"2022-2023"
+
 }
 
 ### FLASE FY YEAR ADMIN 
@@ -107,8 +111,30 @@ POST  http://localhost:1111/setfalsefyyear
 Content-Type: application/json
 
 {
-    "fy_name":2026
+    "fy_name":"2022-2023"
+
 }
+
+### ACTIVATING MONTH BASED ON FY YEAR
+POST http://localhost:1111/activateMonth
+Content-Type: application/json
+
+{
+  "fy_name":"2024-2025",
+  "month_name":"May"  
+}
+
+###LOCKING MONTH BASED ON FY YEAR
+POST http://localhost:1111/lockMonth
+Content-Type: application/json
+
+{
+  "fy_name":"2024-2025",
+  "month_name":"May"  
+}
+
+
+
 
 ### TRUE MONTH ADMIN
 POST  http://localhost:1111/setmonthtrue
@@ -194,6 +220,8 @@ GET http://localhost:1111/date_filter/22-01-2025/23-01-2025
 ### FILTER FOR BILL NO
 
 GET http://localhost:1111/getFormsByBillNos?bill_nos=dvdvvd,1212
+
+
 
 ### TESTING 
 GET http://localhost:1111/

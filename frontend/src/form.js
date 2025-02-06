@@ -18,12 +18,14 @@ const Form = ({ handleClose }) => {
   const [fy_year, setFyYear] = useState(null);
   const [month, setMonth] = useState(null);
   const [head_cat, setHeadCat] = useState(null);
+  const [type, setType] = useState(null);
   const [sub_cat, setSubCat] = useState(null);
   const [date, setDate] = useState(null);
   const [received_by, setReceivedBy] = useState([]);
   const [particulars, setParticulars] = useState('');
   const [departments, setDepartments] = useState(null);
   const [vehicles, setVehicles] = useState(null);
+
 
   const [bills, setBills] = useState([{ files: [] }]); // Initialize bills with an empty files array
 
@@ -45,6 +47,10 @@ const Form = ({ handleClose }) => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+
+  // TYPE DROP DOWN
+
+  const typeOption = ['Type 1', 'Type 2'];
 
   // DROP DOWN FETCHS
 
@@ -122,6 +128,7 @@ const Form = ({ handleClose }) => {
     if (!month) errors.month = 'Month is required';
     if (!date) errors.date = 'Date is required';
     if (!head_cat) errors.head_cat = 'Head Category is required';
+    if (!type) errors.type = 'Type is required';
     if (!sub_cat) errors.sub_cat = 'Sub Category is required';
     if (!particulars) errors.particulars = 'Particulars are required';
     if (!received_by || received_by.length === 0) errors.received_by = 'Received By is required';
@@ -161,60 +168,63 @@ const Form = ({ handleClose }) => {
   };
 
 
-    const formattedDate = date ? format(new Date(date), 'dd-MM-yyyy') : '';
+  const formattedDate = date ? format(new Date(date), 'dd-MM-yyyy') : '';
 
 
-    const handleSubmit = async (event) => {
-      event.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
 
-      // Validate the form before submitting
-      const errors = validateForm();
+    // Validate the form before submitting
+    const errors = validateForm();
 
-      // If there are errors, return and don't proceed with submission
-      if (errors) {
-        return;
-      }
+    // If there are errors, return and don't proceed with submission
+    if (errors) {
+      return;
+    }
 
-      // Create the form data object (excluding files)
-      const formData = {
-        fy_year: JSON.stringify(fy_year),
-        month: JSON.stringify(month),
-        head_cat: JSON.stringify(head_cat),
-        sub_cat: JSON.stringify(sub_cat),
-        date: formattedDate,
-        received_by: JSON.stringify(received_by),
-        particulars: particulars,
-        departments: JSON.stringify(departments),
-        vehicles: JSON.stringify(vehicles),
-        bills: JSON.stringify(bills.map(bill => ({
-          bill_no: bill.bill_no,
-          amount: bill.amount,
-        }))),
-      };
-
-      // Collect all the files from bills
-      const files = bills.flatMap(bill => bill.files);
-
-      try {
-        const response = await postform(formData, files);
-        console.log('Response:', response);
-        setSnackbarMessage('Form submitted successfully!');
-        setSnackbarSeverity('success');
-        setSnackbarOpen(true);
-        setTimeout(() => {
-          navigate('/table');
-        }, 1000);
-      } catch (error) {
-        console.error('Error submitting form:', error.message);
-        setSnackbarMessage('Error submitting form');
-        setSnackbarSeverity('error');
-        setSnackbarOpen(true);
-      }
+    // Create the form data object (excluding files)
+    const formData = {
+      fy_year: JSON.stringify(fy_year),
+      month: JSON.stringify(month),
+      head_cat: JSON.stringify(head_cat),
+      type: JSON.stringify(type),
+      sub_cat: JSON.stringify(sub_cat),
+      date: formattedDate,
+      received_by: JSON.stringify(received_by),
+      particulars: particulars,
+      departments: JSON.stringify(departments),
+      vehicles: JSON.stringify(vehicles),
+      bills: JSON.stringify(bills.map(bill => ({
+        bill_no: bill.bill_no,
+        amount: bill.amount,
+      }))),
     };
+
+    // Collect all the files from bills
+    const files = bills.flatMap(bill => bill.files);
+    console.log(formData)
+
+    try {
+      const response = await postform(formData, files);
+      console.log('Response:', response);
+      setSnackbarMessage('Form submitted successfully!');
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+      setTimeout(() => {
+        navigate('/table');
+      }, 1000);
+    } catch (error) {
+      console.error('Error submitting form:', error.message);
+      setSnackbarMessage('Error submitting form');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    }
+  };
   const handleClear = () => {
     setFyYear(null);
     setMonth(null);
     setHeadCat(null);
+    setType(null);
     setSubCat(null);
     setDate(null);
     setReceivedBy([]);
@@ -263,141 +273,144 @@ const Form = ({ handleClose }) => {
   return (
     <div>
       <Dash />
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 12 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 13, px: 2 }}>
         <Box
           component="form"
           onSubmit={handleSubmit}
           sx={{
-            p: 4,
+            p: 3,
             boxShadow: 3,
-            borderRadius: 2,
-            width: '60%',
+            borderRadius: 3,
+            width: '100%',
+            maxWidth: 800,
             bgcolor: 'background.paper',
-            borderRadius: '50px'
           }}
         >
-          <Typography variant="h4" component="h2" gutterBottom
-            style={{ backgroundColor: '#32348c', color: '#fff', textAlign: 'center', borderRadius: '50px' }}>
+          <Typography
+            variant="h4"
+            component="h2"
+            gutterBottom
+            sx={{ bgcolor: '#32348c', color: '#fff', textAlign: 'center', borderRadius: 2, p: 1 }}
+          >
             <b>REPORT</b>
           </Typography>
           <Grid container spacing={2}>
-            {/* Fiscal Year, Month, and Selected Date */}
-            <Grid item xs={12}>
-              <Grid container spacing={2}>
-                <Grid item xs={4}>
-                  <Autocomplete
-                    options={fyYears}
-                    getOptionLabel={(option) => option.fy_name}
-                    value={fy_year}
-                    onChange={(e, newValue) => setFyYear(newValue)}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="Fiscal Year"
-                        variant="filled"
-                        error={!!errors.fy_year}
-                        helperText={errors.fy_year || ''}
-                        sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
-                      />
-                    )}
+            <Grid item xs={12} md={4}>
+              <Autocomplete
+                options={fyYears}
+                getOptionLabel={(option) => option.fy_name}
+                value={fy_year}
+                onChange={(e, newValue) => setFyYear(newValue)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Fiscal Year"
+                    variant="filled"
+                    error={!!errors.fy_year}
+                    helperText={errors.fy_year || ''}
                   />
-                </Grid>
-                <Grid item xs={4}>
-                  <Autocomplete
-                    options={months}
-                    getOptionLabel={(option) => option.month_name}
-                    value={month}
-                    onChange={(e, newValue) => setMonth(newValue)}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="Month"
-                        variant="filled"
-                        error={!!errors.month}
-                        helperText={errors.month || ''}
-                        sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
-                      />
-                    )}
+                )}
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Autocomplete
+                options={months}
+                getOptionLabel={(option) => option.month_name}
+                value={month}
+                onChange={(e, newValue) => setMonth(newValue)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Month"
+                    variant="filled"
+                    error={!!errors.month}
+                    helperText={errors.month || ''}
                   />
-                </Grid>
-                <Grid item xs={4}>
-                  <LocalizationProvider dateAdapter={AdapterDateFns}>
-                    <DesktopDatePicker
-                      label="Date"
-                      format="dd/MM/yyyy"
-                      value={date}
-                      onChange={(newValue) => setDate(newValue)}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          variant="filled"
-                          fullWidth
-                          sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
-                          error={!!errors.date} // Display error if there's an error for the 'date' field
-                          helperText={errors.date} // Display the error message for the 'date' field
-                        />
-                      )}
+                )}
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <DesktopDatePicker
+                  label="Date"
+                  format="dd/MM/yyyy"
+                  value={date}
+                  onChange={(newValue) => setDate(newValue)}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      variant="filled"
+                      fullWidth
+                      error={!!errors.date}
+                      helperText={errors.date}
                     />
-                  </LocalizationProvider>
-                </Grid>
-
-              </Grid>
+                  )}
+                />
+              </LocalizationProvider>
             </Grid>
 
-            {/* Head Category and Sub Category */}
-            <Grid item xs={12}>
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Autocomplete
-                    options={headCats}
-                    getOptionLabel={(option) => option.head_cat_name}
-                    value={head_cat}
-                    onChange={(e, newValue) => {
-                      setHeadCat(newValue);
-                      setIsSubCatDisabled(newValue === null);
-                      if (newValue === null) {
-                        setSubCat(null);
-                        setDepartments(null);
-                        setVehicles(null);
-                      }
-                    }}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="Head Category"
-                        variant="filled"
-                        error={!!errors.head_cat}
-                        helperText={errors.head_cat || ''}
-                        sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
-                      />
-                    )}
+            <Grid item xs={12} md={6}>
+              <Autocomplete
+                options={headCats}
+                getOptionLabel={(option) => option.head_cat_name}
+                value={head_cat}
+                onChange={(e, newValue) => {
+                  setHeadCat(newValue);
+                  setIsSubCatDisabled(newValue === null);
+                  if (newValue === null) {
+                    setSubCat(null);
+                    setDepartments(null);
+                    setVehicles(null);
+                  }
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Head Category"
+                    variant="filled"
+                    error={!!errors.head_cat}
+                    helperText={errors.head_cat || ''}
                   />
-
-                </Grid>
-                <Grid item xs={6}>
-                  <Autocomplete
-                    options={subCats}
-                    getOptionLabel={(option) => option.sub_cat_name}
-                    value={sub_cat}
-                    onChange={(e, newValue) => setSubCat(newValue)}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="Sub Category"
-                        variant="filled"
-                        error={!!errors.sub_cat}
-                        helperText={errors.sub_cat || ''}
-                        sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
-                      />
-                    )}
-                    disabled={isSubCatDisabled}
+                )}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Autocomplete
+                options={typeOption}
+                value={type}
+                onChange={(e, newValue) => setType(newValue)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Type"
+                    variant="filled"
+                    error={!!errors.type}
+                    helperText={errors.type || ''}
                   />
-                </Grid>
-              </Grid>
+                )}
+              />
             </Grid>
 
-            {/* Departments and Vehicles */}
-            <Grid item xs={6}>
+            <Grid item xs={12} md={6}>
+              <Autocomplete
+                options={subCats}
+                getOptionLabel={(option) => option.sub_cat_name}
+                value={sub_cat}
+                onChange={(e, newValue) => setSubCat(newValue)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Sub Category"
+                    variant="filled"
+                    error={!!errors.sub_cat}
+                    helperText={errors.sub_cat || ''}
+                  />
+                )}
+                disabled={isSubCatDisabled}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
               <Autocomplete
                 multiple
                 options={departmentsList}
@@ -411,13 +424,13 @@ const Form = ({ handleClose }) => {
                     variant="filled"
                     error={!!errors.departments}
                     helperText={errors.departments || ''}
-                    sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
                   />
                 )}
                 disabled={isDepartmentDisabled}
               />
             </Grid>
-            <Grid item xs={6}>
+
+            <Grid item xs={12} sm={6}>
               <Autocomplete
                 multiple
                 options={vehiclesList}
@@ -432,178 +445,167 @@ const Form = ({ handleClose }) => {
                     error={!!errors.vehicles}
                     helperText={errors.vehicles || ''}
                     sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
+                    fullWidth
                   />
                 )}
                 disabled={isVehicleDisabled}
               />
             </Grid>
 
-
-            {/* Received By and Particulars */}
-            <Grid item xs={12}>
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <Autocomplete
-                    multiple
-                    options={employees}
-                    getOptionLabel={(option) =>
-                      `${option.emp_id} / ${option.emp_name} / ${option.emp_designation}`
-                    }
-                    value={received_by}
-                    onChange={(e, newValue) => setReceivedBy(newValue)}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="Received By"
-                        variant="filled"
-                        error={!!errors.received_by}
-                        helperText={errors.received_by || ''}
-                        sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
-                      />
-                    )}
-                  />
-                </Grid>
-
-                <Grid item xs={12}>
+            <Grid item xs={12} sm={6}>
+              <Autocomplete
+                multiple
+                options={employees}
+                getOptionLabel={(option) =>
+                  `${option.emp_id} / ${option.emp_name} / ${option.emp_designation}`
+                }
+                value={received_by}
+                onChange={(e, newValue) => setReceivedBy(newValue)}
+                renderInput={(params) => (
                   <TextField
-                    multiline
-                    fullWidth
-                    label="Particulars"
+                    {...params}
+                    label="Received By"
                     variant="filled"
-                    value={particulars}
-                    onChange={(e) => setParticulars(e.target.value)}
-                    error={!!errors.particulars}
-                    helperText={errors.particulars || ''}
+                    error={!!errors.received_by}
+                    helperText={errors.received_by || ''}
                     sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
+                    fullWidth
                   />
-                </Grid>
-              </Grid>
+                )}
+              />
             </Grid>
 
-            {/* Wrapper for all bills */}
             <Grid item xs={12}>
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  {bills.map((bill, index) => (
-                    <Box key={index} mb={3}>
-                      <Grid container spacing={2} alignItems="center">
-                        {/* Bill Number */}
-                        <Grid item xs={4} sm={4}>
-                          <TextField
-                            fullWidth
-                            variant="filled"
-                            label="Bill Number"
-                            value={bill.bill_no}
-                            onChange={(e) => handleBillChange(index, "bill_no", e.target.value)}
-                            error={!!errors[`bill_no_${index}`]} // Show error if there's a validation issue
-                            helperText={errors[`bill_no_${index}`]} // Display error message
-                          />
-                        </Grid>
+              <TextField
+                multiline
+                fullWidth
+                label="Particulars"
+                variant="filled"
+                value={particulars}
+                onChange={(e) => setParticulars(e.target.value)}
+                error={!!errors.particulars}
+                helperText={errors.particulars || ''}
+                sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
+                rows={4}
+              />
+            </Grid>
 
-                        {/* Amount */}
-                        <Grid item xs={3} sm={4}>
-                          <TextField
-                            fullWidth
-                            label="Amount"
-                            type="number"
-                            variant="filled"
-                            value={bill.amount}
-                            onChange={(e) => handleBillChange(index, "amount", e.target.value)}
-                            error={!!errors[`amount_${index}`]} // Show error if there's a validation issue
-                            helperText={errors[`amount_${index}`]} // Display error message
-                          />
-                        </Grid>
 
-                        {/* Upload Files */}
-                        <Grid item xs={3} sm={2}>
-                          <Button
-                            variant="contained"
-                            component="label"
-                            fullWidth
-                            startIcon={<UploadFileIcon />}
-                            sx={{ backgroundColor: '#32348c' }}
-                          >
-                            Upload
-                            <input
-                              type="file"
-                              multiple
-                              hidden
-                              accept=".png,.jpeg,.jpg,.pdf"
-                              onChange={(e) => handleFileUpload(index, e.target.files)}
-                            />
-                          </Button>
-                        </Grid>
-                        {/* Delete Button */}
-                        <Grid item xs={3} sm={2}>
-                          <Button
-                            variant="contained"
-                            component="label"
-                            fullWidth
-                            startIcon={<DeleteIcon />}
-                            onClick={() => removeBill(index)}
-                            disabled={bills.length === 1} // Prevent removing the last bill
-                            color="error"
-                          >
-                            Delete
-                          </Button>
-                        </Grid>
-                      </Grid>
 
-                      {/* Files Chips */}
-                      <Box mt={1}>
-                        {bills[index]?.files?.length > 0 ? (
-                          bills[index].files.map((file, fileIndex) => (
-                            <Chip
-                              key={fileIndex}
-                              label={file.name || file}
-                              onDelete={() => handleFileDelete(index, fileIndex)}
-                              sx={{ mr: 1, mb: 1 }}
-                            />
-                          ))
-                        ) : (
-                          <Typography variant="body2" color="textSecondary">
-                            No files uploaded.
-                          </Typography>
-                        )}
-                      </Box>
+            <Grid item xs={12}>
+              {bills.map((bill, index) => (
+                <Box key={index} mb={2}>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        variant="filled"
+                        label="Bill Number"
+                        value={bill.bill_no}
+                        onChange={(e) => handleBillChange(index, 'bill_no', e.target.value)}
+                        error={!!errors[`bill_no_${index}`]}
+                        helperText={errors[`bill_no_${index}`]}
+                      />
+                    </Grid>
 
-                      <Divider sx={{ my: 2 }} />
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        label="Amount"
+                        type="number"
+                        variant="filled"
+                        value={bill.amount}
+                        onChange={(e) => handleBillChange(index, 'amount', e.target.value)}
+                        error={!!errors[`amount_${index}`]}
+                        helperText={errors[`amount_${index}`]}
+                      />
+                    </Grid>
 
-                    </Box>
-                  ))}
+                    <Grid item xs={12} md={2}>
+                      <Button
+                        variant="contained"
+                        component="label"
+                        fullWidth
+                        startIcon={<UploadFileIcon />}
+                        sx={{ bgcolor: '#32348c' }}
+                      >
+                        Upload
+                        <input
+                          type="file"
+                          multiple
+                          hidden
+                          accept=".png,.jpeg,.jpg,.pdf"
+                          onChange={(e) => handleFileUpload(index, e.target.files)}
+                        />
+                      </Button>
+                    </Grid>
 
-                  {/* Add New Bill Button */}
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <Button
-                      startIcon={<AddCircleOutlineIcon />}
-                      onClick={addNewBill}
-                      sx={{ mb: 2, color: '#32348c' }}
-                    >
-                      Add Bill
-                    </Button>
+                    <Grid item xs={12} md={2}>
+                      <Button
+                        variant="contained"
+                        fullWidth
+                        startIcon={<DeleteIcon />}
+                        color="error"
+                        onClick={() => removeBill(index)}
+                        disabled={bills.length === 1}
+                      >
+                        Delete
+                      </Button>
+                    </Grid>
+                  </Grid>
+
+                  <Box mt={1}>
+                    {bill.files?.map((file, fileIndex) => (
+                      <Chip
+                        key={fileIndex}
+                        label={file.name || file}
+                        onDelete={() => handleFileDelete(index, fileIndex)}
+                        sx={{ mr: 1, mb: 1 }}
+                      />
+                    ))}
                   </Box>
+                  <Divider sx={{ my: 2 }} />
+                </Box>
+              ))}
 
-                </Grid>
-              </Grid>
-            </Grid>
-
-
-            {/* Submit and Clear Buttons */}
-            <Grid item xs={12}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Button type="submit" variant="contained" color="success" sx={{ flexGrow: 1, mr: 1, borderRadius: '50px' }}>
-                  Submit
-                </Button>
-                <Button variant="contained" color="error" onClick={handleClear} sx={{ flexGrow: 1, borderRadius: '50px' }}>
-                  Clear
-                </Button>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button
+                    startIcon={<AddCircleOutlineIcon />}
+                    onClick={addNewBill}
+                    sx={{ mb: 2, color: '#32348c' }}
+                  >
+                    Add Bill
+                  </Button>
               </Box>
             </Grid>
+            <Grid container spacing={2}>
+              <Grid item md={6} xs={12}>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  color="success"
+                  fullWidth
+                  sx={{ borderRadius: 50 }}
+                >
+                  Submit
+                </Button>
+              </Grid>
+              <Grid item md={6} xs={12}>
+                <Button
+                  variant="contained"
+                  color="error"
+                  onClick={handleClear}
+                  fullWidth
+                  sx={{ borderRadius: 50 }}
+                >
+                  Clear
+                </Button>
+              </Grid>
+            </Grid>
+
           </Grid>
         </Box>
       </Box>
-
-      {/* Snackbar for Notifications */}
 
       <Snackbar
         open={snackbarOpen}

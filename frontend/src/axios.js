@@ -2,12 +2,16 @@ import axios from 'axios';
 
 import { toDate } from 'date-fns';
 
+// BASE URL
+
+const BASE_URL = "http://localhost:1111";  //90
+
 
 
 // POST SIGN IN
 
 export const postsignin = (userData) => {
-  return axios.post("http://localhost:1111/signin", userData);
+  return axios.post(`${BASE_URL}/signin`, userData);
 };
 
 
@@ -30,7 +34,7 @@ export const postform = async (formData, files) => {
     });
 
     // Post form data to the server
-    const response = await axios.post('http://localhost:1111/postform', data, {
+    const response = await axios.post(`${BASE_URL}/postform`, data, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -48,7 +52,7 @@ export const postform = async (formData, files) => {
 
 export const deleteFormById = async (id) => {
   try {
-    const response = await axios.delete(`http://localhost:1111/erase/${id}`);
+    const response = await axios.delete(`${BASE_URL}/erase/${id}`);
     return response.data;
   } catch (error) {
     console.error('Error deleting form:', error);
@@ -57,43 +61,50 @@ export const deleteFormById = async (id) => {
 };
 
 export const getHeadCat = async () => {
-  const response = await axios.get('http://localhost:1111/gethead_cat');
+  const response = await axios.get(`${BASE_URL}/gethead_cat`);
   return response.data;
 };
 
 export const getSubCat = async () => {
-  const response = await axios.get('http://localhost:1111/getsub_cat');
+  const response = await axios.get(`${BASE_URL}/getsub_cat`);
   return response.data;
 };
 
 export const getMonth = async () => {
-  const response = await axios.get('http://localhost:1111/getmonth');
+  const response = await axios.get(`${BASE_URL}/getmonth`);
   return response.data;
 };
 
 export const getDepartment = async () => {
-  const response = await axios.get('http://localhost:1111/getdepartment');
+  const response = await axios.get(`${BASE_URL}/getdepartment`);
   return response.data;
 };
 
 export const getEmployee = async () => {
-  const response = await axios.get('http://localhost:1111/getemployee');
+  const response = await axios.get(`${BASE_URL}/getemployee`);
   return response.data;
 };
 
 export const getVehicle = async () => {
-  const response = await axios.get('http://localhost:1111/getvehicle');
+  const response = await axios.get(`${BASE_URL}/getvehicle`);
   return response.data;
 };
 
+// GE FY YEAR DATA FROM FY YEAR COLELCTION 
+
 export const getFyYear = async () => {
-  const response = await axios.get('http://localhost:1111/getfy_year');
-  return response.data;
+  try {
+    const response = await axios.get(`${BASE_URL}/getfy_year`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching FY years:", error);
+    throw error;
+  }
 };
 
 export const getforms = async () => {
   try {
-    const response = await axios.get('http://localhost:1111/getforms');
+    const response = await axios.get(`${BASE_URL}/getforms`);
     const data = response.data;
 
     // Reverse the data array so that the last item comes first
@@ -109,7 +120,7 @@ export const getforms = async () => {
 // Function to get fiscal year data  for action button if fy_id is true show the actiion button for admin : false users 
 export const getFiscalYears = async () => {
   try {
-    const response = await axios.get('http://localhost:1111/getfy_year');
+    const response = await axios.get(`${BASE_URL}/getfy_year`);
     return response.data;
   } catch (error) {
     console.error("Error fetching fiscal year data:", error);
@@ -121,7 +132,7 @@ export const getFiscalYears = async () => {
 // Function to get forms by amount
 export const getFormsByAmount = async (amount) => {
   try {
-    const response = await axios.get(`http://localhost:1111/amount/${amount}`);
+    const response = await axios.get(`${BASE_URL}/${amount}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching forms by amount:', error);
@@ -129,10 +140,24 @@ export const getFormsByAmount = async (amount) => {
   }
 };
 
+// GET FORM BY TYPE 
+
+export const getFormsByType = async (type) => {
+  try {
+    const response = await axios.get(`${BASE_URL}/getFormByType/${type}`);
+    console.log(response.data); // Display the retrieved forms
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching forms:', error);
+    return [];
+  }
+};
+
+
 // Function to get forms by particulars
 export const getFormsByParticulars = async (particulars) => {
   try {
-    const response = await axios.get(`http://localhost:1111/particulars/${particulars}`);
+    const response = await axios.get(`${BASE_URL}/particulars/${particulars}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching forms by particulars:', error);
@@ -143,7 +168,7 @@ export const getFormsByParticulars = async (particulars) => {
 // Function to get forms by fiscal year
 export const getFormsByFyYear = async (fyYear) => {
   try {
-    const response = await axios.get(`http://localhost:1111/fy_year/${fyYear}`);
+    const response = await axios.get(`${BASE_URL}/fy_year/${fyYear}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching forms by fiscal year:', error);
@@ -154,7 +179,7 @@ export const getFormsByFyYear = async (fyYear) => {
 // Function to get forms by month
 export const getFormsByMonth = async (month) => {
   try {
-    const response = await axios.get(`http://localhost:1111/month/${month}`);
+    const response = await axios.get(`${BASE_URL}/month/${month}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching forms by month:', error);
@@ -165,7 +190,7 @@ export const getFormsByMonth = async (month) => {
 // Function to get forms by date
 export const getFormsByDate = async (date) => {
   try {
-    const response = await axios.get(`http://localhost:1111/date/${date}`);
+    const response = await axios.get(`${BASE_URL}/date/${date}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching forms by date:', error);
@@ -176,7 +201,7 @@ export const getFormsByDate = async (date) => {
 // Function to get forms by head category name
 export const getFormsByHeadCatName = async (headCatName) => {
   try {
-    const response = await axios.get(`http://localhost:1111/getFormByHeadCatName/${headCatName}`);
+    const response = await axios.get(`${BASE_URL}/getFormByHeadCatName/${headCatName}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching forms by head category name:', error);
@@ -187,7 +212,7 @@ export const getFormsByHeadCatName = async (headCatName) => {
 // Function to get forms by subcategory name
 export const getFormsBySubCatName = async (subCatName) => {
   try {
-    const response = await axios.get(`http://localhost:1111/getFormBySubCatName/${subCatName}`);
+    const response = await axios.get(`${BASE_URL}/getFormBySubCatName/${subCatName}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching forms by subcategory name:', error);
@@ -198,7 +223,7 @@ export const getFormsBySubCatName = async (subCatName) => {
 // Function to get forms by vehicle ID
 export const getFormsByVehicleID = async (vehicleID) => {
   try {
-    const response = await axios.get(`http://localhost:1111/getFormByVehicleID/${vehicleID}`);
+    const response = await axios.get(`${BASE_URL}/getFormByVehicleID/${vehicleID}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching forms by vehicle ID:', error);
@@ -211,7 +236,7 @@ export const getFormsByEmployeeIDs = async (empIDs) => {
   try {
     // Convert empIDs (array) into a comma-separated string
     const queryParam = empIDs.join(',');
-    const response = await axios.get(`http://localhost:1111/getFormsByEmployeeIDs`, {
+    const response = await axios.get(`${BASE_URL}/getFormsByEmployeeIDs`, {
       params: {
         emp_ids: queryParam, // Pass the comma-separated IDs as a query parameter
       },
@@ -231,7 +256,7 @@ export const getFormsByBillNos = async (billNos) => {
     const billNosString = billNos.join(',');
 
     // Make the GET request with the bill_nos query parameter
-    const response = await axios.get(`http://localhost:1111/getFormsByBillNos?bill_nos=${billNosString}`);
+    const response = await axios.get(`${BASE_URL}/getFormsByBillNos?bill_nos=${billNosString}`);
 
     // Return the response data (the forms)
     return response.data;
@@ -245,7 +270,7 @@ export const getFormsByBillNos = async (billNos) => {
 
 export const getFormsByFyYearAndMonth = async (fy_year, month) => {
   try {
-    const response = await axios.get(`http://localhost:1111/fy_year_month/${fy_year}/${month}`);
+    const response = await axios.get(`${BASE_URL}/fy_year_month/${fy_year}/${month}`);
     return response.data;
   } catch (error) {
     console.error('Failed to retrieve forms', error);
@@ -256,7 +281,7 @@ export const getFormsByFyYearAndMonth = async (fy_year, month) => {
 // Fetch financial year options
 export const getFyYearOptions = async () => {
   try {
-    const response = await axios.get('http://localhost:1111/getfyyearoption');
+    const response = await axios.get(`${BASE_URL}/getfyyearoption`);
     return response.data;
   } catch (error) {
     console.error('Error fetching financial year options:', error);
@@ -267,7 +292,7 @@ export const getFyYearOptions = async () => {
 // Fetch month options CS
 export const getMonthOptions = async () => {
   try {
-    const response = await axios.get('http://localhost:1111/getmonthoption');
+    const response = await axios.get(`${BASE_URL}/getmonthoption`);
     return response.data;
   } catch (error) {
     console.error('Error fetching month options:', error);
@@ -277,48 +302,40 @@ export const getMonthOptions = async () => {
 
 // Fetch month data
 export const fetchMonthData = () => {
-  return axios.get(`http://localhost:1111/getmonth`);
+  return axios.get(`${BASE_URL}/getmonth`);
 };
 
 // Get financial year status
 export const getFyYearStatus = (fyName) => {
-  return axios.get(`http://localhost:1111/getfy_year`, {
+  return axios.get(`${BASE_URL}/getfy_year`, {
     params: { fy_name: fyName }
   });
 };
 
 // Get month status
 export const getMonthStatus = (monthName) => {
-  return axios.get(`http://localhost:1111/getmonth`, {
+  return axios.get(`${BASE_URL}/getmonth`, {
     params: { month_name: monthName }
   });
 };
 
 // Activate financial year
 export const activateFyYear = (fyName) => {
-  return axios.post(`http://localhost:1111/settruefyyear`, { fy_name: fyName });
+  return axios.post(`${BASE_URL}/settruefyyear`, { fy_name: fyName });
 };
 
 // Lock financial year
 export const lockFyYear = (fyName) => {
-  return axios.post(`http://localhost:1111/setfalsefyyear`, { fy_name: fyName });
+  return axios.post(`${BASE_URL}/setfalsefyyear`, { fy_name: fyName });
 };
 
-// Activate month
-export const activateMonth = (monthName) => {
-  return axios.post(`http://localhost:1111/setmonthtrue`, { month_name: monthName });
-};
 
-// Lock month
-export const lockMonth = (monthName) => {
-  return axios.post(`http://localhost:1111/setmonthfalse`, { month_name: monthName });
-};
 
 // GET FORM BY ID 
 
 export const getFormById = async (formId) => {
   try {
-    const response = await axios.get(`http://localhost:1111/getforms/${formId}`);
+    const response = await axios.get(`${BASE_URL}/getforms/${formId}`);
     console.log('Form fetched successfully:', response.data);
     return response.data;
   } catch (error) {
@@ -360,7 +377,7 @@ export const modifyForm = async (formData, files) => {
     }
 
     // Put form data to the server
-    const response = await axios.put('http://localhost:1111/modify', data, {
+    const response = await axios.put(`${BASE_URL}/modify`, data, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
@@ -383,11 +400,88 @@ export const modifyForm = async (formData, files) => {
 //fiter by date in consolidate
 export const dateFilter = async (formattedFDate, formattedTDate) => {
   try {
-    const response = await axios.get(`http://localhost:1111/date_filter/${formattedFDate}/${formattedTDate}`);
+    const response = await axios.get(`${BASE_URL}/date_filter/${formattedFDate}/${formattedTDate}`);
     console.log('Form fetched successfully:', response.data);
     return response.data;
   } catch (error) {
     console.error('Error fetching data:', error);
     throw error;
+  }
+};
+
+// ADMIN MONTH FETCH
+
+export const fetchMonthUpdates = async () => {
+  try {
+    const response = await axios.get(`${BASE_URL}/month-updates`); // Replace with your actual API endpoint
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching month updates:', error);
+    return null; // Handle error gracefully
+  }
+};
+
+
+// ADMIN FY YEAR ACTIVATOR 
+
+export const activateFiscalYear = async (fy_name) => {
+  try {
+      const response = await axios.post(`${BASE_URL}/settruefyyear`, {
+          fy_name: fy_name
+      }, {
+          headers: { 'Content-Type': 'application/json' }
+      });
+      console.log('Fiscal Year Activated:', response.data);
+  } catch (error) {
+      console.error('Error activating fiscal year:', error.response ? error.response.data : error.message);
+  }
+};
+
+// ADMIN FY YEAR LOCKER
+
+export const deactivateFiscalYear = async (fy_name) => {
+  try {
+      const response = await axios.post(`${BASE_URL}/setfalsefyyear`, {
+          fy_name: fy_name
+      }, {
+          headers: { 'Content-Type': 'application/json' }
+      });
+      console.log('Fiscal Year Deactivated:', response.data);
+  } catch (error) {
+      console.error('Error deactivating fiscal year:', error.response ? error.response.data : error.message);
+  }
+};
+
+// ADMIN MONTH ACTIVATE BASED ON FY YEAR
+
+export const activateMonth = async (fy_name, month_name) => {
+  try {
+      const response = await axios.post(`${BASE_URL}/activateMonth`, {
+          fy_name,
+          month_name
+      }, {
+          headers: { 'Content-Type': 'application/json' }
+      });
+
+      console.log('Month Activated:', response.data);
+  } catch (error) {
+      console.error('Error activating month:', error.response ? error.response.data : error.message);
+  }
+};
+
+// ADMIN MONTH LOCK BASED ON FY YEAR
+
+export const lockMonth = async (fy_name, month_name) => {
+  try {
+      const response = await axios.post(`${BASE_URL}/lockMonth`, {
+          fy_name,
+          month_name
+      }, {
+          headers: { 'Content-Type': 'application/json' }
+      });
+
+      console.log('Month Locked:', response.data);
+  } catch (error) {
+      console.error('Error locking month:', error.response ? error.response.data : error.message);
   }
 };

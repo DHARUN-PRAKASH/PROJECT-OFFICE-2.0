@@ -28,11 +28,10 @@ import {
   getFyYear,
   deleteFormById,
   getFormsByBillNos,
-  getFiscalYears,
-  dateFilter
+  dateFilter,
+  getFormsByType
 } from "./axios";
 import Dash from "./dash";
-import { PDFDocument, rgb } from "pdf-lib";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import PreviewRoundedIcon from "@mui/icons-material/PreviewRounded";
@@ -42,13 +41,12 @@ import { DesktopDatePicker } from "@mui/x-date-pickers/DesktopDatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { format } from "date-fns";
-import ClearIcon from "@mui/icons-material/Clear";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import IconButton from "@mui/material/IconButton";
 import { useNavigate } from "react-router-dom";
 import { DatePicker } from '@mui/x-date-pickers';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward'; // For the arrow icon
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 
 // Define custom styling for column headers
 const useStyles = {
@@ -73,8 +71,8 @@ const Table = () => {
     particulars: "",
     date: null,
     bill: "",
-    fromDate:null,
-    toDate:null
+    fromDate: null,
+    toDate: null
   });
 
 
@@ -89,6 +87,8 @@ const Table = () => {
   const [toDate, setToDate] = useState(null);
 
   const navigate = useNavigate();
+
+  const BASE_URL = "http://localhost:1111";
 
   useEffect(() => {
     const fetchDropdownData = async () => {
@@ -166,6 +166,8 @@ const Table = () => {
             data = await getFormsByDate(format(filters.date, 'dd-MM-yyyy'));
           } else if (filters.bill.length > 0) {
             data = await getFormsByBillNos(filters.bill);
+          } else if (filters.type) {
+            data = await getFormsByType(filters.type);
           }
         }
 
@@ -192,6 +194,7 @@ const Table = () => {
           employeeIds: form.received_by?.map((emp) => emp.emp_id).join(', ') || 'N/A',
           departments: form.departments?.map((department) => department.dept_id).join(', ') || 'N/A',
           bill_no: form.bill_no || 'N/A',
+          type: form.type || 'N/A'
         }));
 
         setRows(formattedData);
@@ -204,6 +207,7 @@ const Table = () => {
 
     fetchForms();
   }, [filters, fromDate, toDate]);
+
 
 
 
@@ -261,9 +265,7 @@ const Table = () => {
 
         yPosition += 10; // Increment Y position for the next row
       });
-
-      // Open PDF in a new tab
-      const pdfOutput = doc.output("dataurlnewwindow");
+       doc.output("dataurlnewwindow");
     } catch (error) {
       console.error("Error generating PDF:", error);
     }
@@ -290,6 +292,12 @@ const Table = () => {
       field: "date",
       headerName: <b>DATE</b>,
       flex: 1,
+      headerClassName: "super-app-theme--header",
+    },
+    {
+      field: "type",
+      headerName: <b>TYPE</b>,
+      flex: 0.5,
       headerClassName: "super-app-theme--header",
     },
     {
@@ -324,7 +332,7 @@ const Table = () => {
       renderCell: (params) => (
         <IconButton
           component="a"
-          href={`http://localhost:1111/merged_pdf/${params.value}`}
+          href={`${BASE_URL}/merged_pdf/${params.value}`}
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -334,8 +342,8 @@ const Table = () => {
     },
 
     {
-      field: "generatePdf",
-      headerName: <b>GEN PDF</b>,
+      field: "Preview",
+      headerName: <b>PREVIEW</b>,
       flex: 0.7,
       headerClassName: "super-app-theme--header",
       renderCell: (params) => (
@@ -377,11 +385,11 @@ const Table = () => {
       particulars: "",
       date: null,
       bill: "",
-      fromDate:null,
-      toDate:null
+      fromDate: null,
+      toDate: null
     });
     setFromDate(null);
-    setToDate(null);  
+    setToDate(null);
   };
 
   const handleDelete = async (id) => {
@@ -430,12 +438,12 @@ const Table = () => {
       <Dash />
       <div
         style={{
-          padding: "50px",
-          boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.1)",
-          marginTop: "50px",
+          padding: "30px",
+          marginTop: "60px",
+          borderRadius: "10px",
         }}
       >
-        <Paper style={{ padding: 20, marginBottom: 20 }}>
+        <Paper sx={{ padding: 3, marginBottom: 3 }}>
           <Typography
             variant="h4"
             align="center"
@@ -443,233 +451,150 @@ const Table = () => {
               backgroundColor: "#32348c",
               color: "white",
               borderRadius: "5px",
-              marginBottom: "10px",
+              padding: "10px",
+              marginBottom: "20px",
+              boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.1)",
+
             }}
           >
             <b>YOUR REPORT</b>
           </Typography>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={4}>
+
+          <Grid container spacing={2}>
+            {[
+              { label: "Vehicle ID", options: vehicles.map((v) => v.vehicle_id), key: "vehicleId" },
+              { label: "Head Category", options: headCats.map((hc) => hc.head_cat_name), key: "headCategory" },
+              { label: "Sub Category", options: subCats.map((sc) => sc.sub_cat_name), key: "subCategory" },
+              { label: "Financial Year", options: fyYears.map((fy) => fy.fy_name), key: "fyYear" },
+              { label: "Month", options: months.map((m) => m.month_name), key: "month" }
+            ].map((field, index) => (
+              <Grid item xs={12} sm={6} md={4} key={index}>
+                <Autocomplete
+                  options={field.options}
+                  renderInput={(params) => <TextField {...params} variant="standard" label={field.label} fullWidth />}
+                  value={filters[field.key]}
+                  onChange={(e, value) => handleFilterChange(e, value, field.key)}
+                />
+              </Grid>
+            ))}
+            <Grid item xs={12} sm={6} md={4}>
               <Autocomplete
-                options={vehicles.map((v) => v.vehicle_id)}
-                renderInput={(params) => (
-                  <TextField
-                    variant="standard"
-                    {...params}
-                    label="Vehicle ID"
-                  />
-                )}
-                value={filters.vehicleId}
-                onChange={(e, value) =>
-                  handleFilterChange(e, value, "vehicleId")
-                }
+                options={["Type 1", "Type 2"]}
+                value={filters.type || null}
+                onChange={(event, newValue) => handleFilterChange(event, newValue, "type")}
+                renderInput={(params) => <TextField {...params} label="Type" variant="standard" fullWidth />}
               />
             </Grid>
-            <Grid item xs={12} md={4}>
-              <Autocomplete
-                options={headCats.map((hc) => hc.head_cat_name)}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    variant="standard"
-                    label="Head Category"
-                  />
-                )}
-                value={filters.headCategory}
-                onChange={(e, value) =>
-                  handleFilterChange(e, value, "headCategory")
-                }
-              />
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <Autocomplete
-                options={subCats.map((sc) => sc.sub_cat_name)}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    variant="standard"
-                    label="Sub Category"
-                  />
-                )}
-                value={filters.subCategory}
-                onChange={(e, value) =>
-                  handleFilterChange(e, value, "subCategory")
-                }
-              />
-            </Grid>
-            <Grid item xs={12} md={4}>
+
+
+            <Grid item xs={12} sm={6} md={4}>
               <TextField
                 type="number"
-                name="amount"
                 label="Amount"
                 variant="standard"
                 value={filters.amount}
-                onChange={(e) =>
-                  handleFilterChange(e, e.target.value, "amount")
-                }
+                onChange={(e) => handleFilterChange(e, e.target.value, "amount")}
                 fullWidth
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+
+            <Grid item xs={12} sm={6} md={4}>
               <Autocomplete
-                options={fyYears.map((fy) => fy.fy_name)}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    variant="standard"
-                    label="Financial Year"
-                  />
-                )}
-                value={filters.fyYear}
-                onChange={(e, value) => handleFilterChange(e, value, "fyYear")}
-              />
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <Autocomplete
-                options={months.map((m) => m.month_name)}
-                renderInput={(params) => (
-                  <TextField {...params} variant="standard" label="Month" />
-                )}
-                value={filters.month}
-                onChange={(e, value) => handleFilterChange(e, value, "month")}
-              />
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <Autocomplete
-                multiple // Enables multi-select
+                multiple
                 options={employees}
-                getOptionLabel={(option) =>
-                  option
-                    ? `${option.emp_id || ''} / ${option.emp_name || ''} / ${option.emp_designation || ''}`
-                    : ''
-                }
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    variant="standard"
-                    label="Employees"
-                    placeholder="Select employees"
-                  />
-                )}
-                value={employees.filter(emp => filters.employeeIds?.includes(emp.emp_id)) || []} // Match selected employee IDs
-                onChange={(e, value) => {
-                  const selectedEmpIds = value.map(emp => emp.emp_id); // Extract selected employee IDs
-
-                  // Check if the field is cleared (empty array)
-                  if (selectedEmpIds.length === 0) {
-                    handleFilterChange(e, null, "employeeIds"); // Clear the filter when no IDs are selected
-                  } else {
-                    handleFilterChange(e, selectedEmpIds, "employeeIds"); // Update filter with selected IDs
-                  }
-                }}
-                isOptionEqualToValue={(option, value) => option.emp_id === value.emp_id} // Ensure unique selection by emp_id
+                getOptionLabel={(option) => `${option.emp_id} / ${option.emp_name} / ${option.emp_designation}`}
+                renderInput={(params) => <TextField {...params} variant="standard" label="Employees" fullWidth />}
+                value={employees.filter(emp => filters.employeeIds?.includes(emp.emp_id)) || []}
+                onChange={(e, value) => handleFilterChange(e, value.map(emp => emp.emp_id), "employeeIds")}
+                isOptionEqualToValue={(option, value) => option.emp_id === value.emp_id}
               />
-
-
             </Grid>
 
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} sm={6} md={4}>
               <TextField
                 type="text"
-                name="particulars"
                 label="Particulars"
                 variant="standard"
                 value={filters.particulars}
-                onChange={(e) =>
-                  handleFilterChange(e, e.target.value, "particulars")
-                }
+                onChange={(e) => handleFilterChange(e, e.target.value, "particulars")}
                 fullWidth
               />
             </Grid>
-            <Grid item xs={12} md={4}>
-              {/* Bill Number Filter with Chips */}
+
+            <Grid item xs={12} sm={6} md={4}>
               <Autocomplete
                 multiple
                 freeSolo
-                variant="standard"
                 options={[]}
                 value={filters.bill}
                 renderTags={(value, getTagProps) =>
                   value.map((option, index) => (
-                    <Chip
-                      key={option}
-                      label={option}
-                      {...getTagProps({ index })}
-                      onDelete={() => handleDeleteBill(option)}
-                    />
+                    <Chip key={option} label={option} {...getTagProps({ index })} onDelete={() => handleDeleteBill(option)} />
                   ))
                 }
                 renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    variant="standard" z
-                    label="Filter by Bill Numbers"
-                    placeholder="Type and press Enter"
-                    onKeyDown={handleAddBill}
-                  />
+                  <TextField {...params} variant="standard" label="Bill Numbers" placeholder="Type and press Enter" onKeyDown={handleAddBill} fullWidth />
                 )}
               />
             </Grid>
+            <Grid item xs={12} sm={6} md={4}>
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <Grid container spacing={2} alignItems="center">
+                  <Grid item xs={5.5}>
+                    <DatePicker
+                      label="From Date"
+                      format="dd/MM/yyyy"
+                      value={fromDate}
+                      onChange={(newValue) => setFromDate(newValue)}
+                      renderInput={(params) => <TextField {...params} fullWidth />}
+                    />
+                  </Grid>
+                  <Grid item xs={1} sx={{ display: 'flex', justifyContent: 'center' }}>
+                    <SwapHorizIcon />
+                  </Grid>
+                  <Grid item xs={5.5}>
+                    <DatePicker
+                      label="To Date"
+                      format="dd/MM/yyyy"
+                      value={toDate}
+                      onChange={(newValue) => setToDate(newValue)}
+                      renderInput={(params) => <TextField {...params} fullWidth />}
+                    />
+                  </Grid>
+                </Grid>
+              </LocalizationProvider>
+            </Grid>
 
-            <Grid item xs={12} md={4}>
-            <Grid container spacing={2}>
-      {/* Select Date */}
-      <Grid item xs={12} md={4}>
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <DesktopDatePicker
-            label="Select Date"
-            inputFormat="dd/MM/yyyy"
-            value={filters.date || null}
-            onChange={(newValue) => handleFilterChange(null, newValue, "date")}
-            renderInput={(params) => <TextField {...params} fullWidth />}
-          />
-        </LocalizationProvider>
-      </Grid>
+            <Grid item xs={12} sm={6} md={2}>
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <DesktopDatePicker
+                  label="Select Date"
+                  format="dd/MM/yyyy"
+                  value={filters.date || null}
+                  onChange={(newValue) => handleFilterChange(null, newValue, "date")}
+                  renderInput={(params) => <TextField {...params} fullWidth />}
+                />
+              </LocalizationProvider>
+            </Grid>
 
-      {/* From Date and To Date */}
-      <Grid item xs={12} md={4} container alignItems="center" justifyContent="space-between">
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <Grid item xs={5}>
-            <DatePicker
-              label="From Date"
-              value={fromDate}
-              onChange={(newValue) => setFromDate(newValue)}
-              inputFormat="dd/MM/yyyy"
-              renderInput={(params) => <TextField {...params} fullWidth />}
-            />
-          </Grid>
-          
-          <Grid item xs={2} container justifyContent="center">
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <ArrowForwardIcon />
-            </Box>
-          </Grid>
 
-          <Grid item xs={5}>
-            <DatePicker
-              label="To Date"
-              value={toDate}
-              onChange={(newValue) => setToDate(newValue)}
-              inputFormat="dd/MM/yyyy"
-              renderInput={(params) => <TextField {...params} fullWidth />}
-            />
-          </Grid>
-        </LocalizationProvider>
-      </Grid>
-    </Grid>
+
+            <Grid item xs={12} sm={6} md={3} lg={2} sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
               <Button
                 onClick={handleClear}
                 variant="contained"
                 color="error"
-                style={{
-                  padding: "10px",
-                  marginLeft: "10px",
-                  marginTop: "5px",
+                sx={{
+                  borderRadius: "50px", // Makes it curvy
+                  padding: "10px 24px", // Adjust padding
+                  textTransform: "none", // Prevent uppercase text
+                  width: { xs: "100%", sm: "auto", md: "100%", lg: "180px" }, // Responsive width
                 }}
               >
-                CLEAR FILTER
+                Clear Filter
               </Button>
             </Grid>
+
           </Grid>
 
           <Box sx={{ height: 600, width: "100%", marginTop: "15px" }}>
@@ -694,7 +619,6 @@ const Table = () => {
         </Paper>
       </div>
       <Dial />
-
       {isLoading && <p>Loading...</p>}
     </div>
   );
