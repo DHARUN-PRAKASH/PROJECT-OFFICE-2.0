@@ -21,7 +21,6 @@ import {
   lockMonth,
   activateFyYear,
   lockFyYear,
-  getFyYearStatus
 } from "./axios";
 import { AdminTable } from "./adminTable";
 import Dash from "./dash";

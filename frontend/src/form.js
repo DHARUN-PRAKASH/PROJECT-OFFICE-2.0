@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TextField, Button, Autocomplete, Grid, Box, Typography, Chip, Snackbar, Alert, Divider } from '@mui/material';
-import { postform, getHeadCat, getSubCat, getMonth, getDepartment, getEmployee, getVehicle, getFyYear, submitForm } from './axios';
+import { postform, getHeadCat, getSubCat, getMonth, getDepartment, getEmployee, getVehicle, getFyYear, getMonthsFromFyYear } from './axios';
 import Dash from './dash';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -34,7 +34,10 @@ const Form = ({ handleClose }) => {
 
   const [headCats, setHeadCats] = useState([]);
   const [subCats, setSubCats] = useState([]);
+  // FOR MONTH
   const [months, setMonths] = useState([]);
+  const [isMonthDisabled, setIsMonthDisabled] = useState(true);
+
   const [departmentsList, setDepartmentsList] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [vehiclesList, setVehiclesList] = useState([]);
@@ -47,6 +50,9 @@ const Form = ({ handleClose }) => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+
+
+
 
   // TYPE DROP DOWN
 
@@ -93,6 +99,31 @@ const Form = ({ handleClose }) => {
 
     fetchData();
   }, []);
+
+  // ON TIME MONTH FETCH LOGIC 
+
+  useEffect(() => {
+    if (fy_year) {
+      setIsMonthDisabled(true); // Disable dropdown while fetching data
+      const fetchMonths = async () => {
+        try {
+          const monthData = await getMonthsFromFyYear(fy_year.fy_name);
+          const filteredMonths = monthData.months.filter(month => month.month_id === true);
+          setMonths(filteredMonths);
+          setIsMonthDisabled(false); // Enable dropdown once data is fetched
+        } catch (error) {
+          console.error('Error fetching months:', error);
+          setIsMonthDisabled(true); // Keep it disabled if fetch fails
+        }
+      };
+  
+      fetchMonths();
+    } else {
+      setMonths([]);
+      setIsMonthDisabled(true); // Disable dropdown if no FY year is selected
+    }
+  }, [fy_year]);
+  
 
   // FEILD DISABLE LOGICS 
 
@@ -313,21 +344,23 @@ const Form = ({ handleClose }) => {
               />
             </Grid>
             <Grid item xs={12} md={4}>
-              <Autocomplete
-                options={months}
-                getOptionLabel={(option) => option.month_name}
-                value={month}
-                onChange={(e, newValue) => setMonth(newValue)}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Month"
-                    variant="filled"
-                    error={!!errors.month}
-                    helperText={errors.month || ''}
-                  />
-                )}
-              />
+            <Autocomplete
+  options={months}
+  getOptionLabel={(option) => option.month_name}
+  value={month}
+  onChange={(e, newValue) => setMonth(newValue)}
+  disabled={isMonthDisabled} // Disable logic applied here
+  renderInput={(params) => (
+    <TextField
+      {...params}
+      label="Month"
+      variant="filled"
+      error={!!errors.month}
+      helperText={errors.month || ''}
+    />
+  )}
+/>
+
             </Grid>
             <Grid item xs={12} md={4}>
               <LocalizationProvider dateAdapter={AdapterDateFns}>

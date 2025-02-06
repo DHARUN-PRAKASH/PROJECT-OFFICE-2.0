@@ -879,14 +879,34 @@ app.get('/getforms/:id', async (req, res) => {
     }
   });
 
+//   GET MONTH BASED ON FY YEAR FROM FY YEAR COLLECTION 
+
+
+app.get('/getMonthsFromFyYear/:fy_name', async (req, res) => {
+    try {
+      const { fy_name } = req.params;
+      const fyYear = await fy_year.findOne({ fy_name });
+  
+      if (!fyYear) {
+        return res.status(404).json({ message: 'Financial year not found' });
+      }
+  
+      // Filter only active months
+      const activeMonths = fyYear.months.filter(month => month.month_id);
+  
+      // Sort active months based on monthOrder
+      activeMonths.sort((a, b) => monthOrder.indexOf(a.month_name) - monthOrder.indexOf(b.month_name));
+  
+      res.json({ fy_name: fyYear.fy_name, months: activeMonths });
+    } catch (error) {
+      res.status(500).json({ message: 'Server error', error });
+    }
+  });
 //   TESTING 
 
 app.get('/', (req, res) => {
     res.send('Welcome to the Drug Interaction API! Use /interactions or /interactions/single.');
   });
-
- 
-  
 
 app.listen(1111, () => {
     console.log("Express connected!!!");

@@ -1,7 +1,5 @@
 import axios from 'axios';
 
-import { toDate } from 'date-fns';
-
 // BASE URL
 
 const BASE_URL = "http://localhost:1111";  //90
@@ -68,6 +66,17 @@ export const getHeadCat = async () => {
 export const getSubCat = async () => {
   const response = await axios.get(`${BASE_URL}/getsub_cat`);
   return response.data;
+};
+
+// GET MONTH BASED ON FY YEAR FROM FY YEAR COLLECTION
+export const getMonthsFromFyYear = async (fy_name) => {
+  try {
+    const response = await axios.get(`${BASE_URL}/getMonthsFromFyYear/${fy_name}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching months:", error);
+    throw error;
+  }
 };
 
 export const getMonth = async () => {
