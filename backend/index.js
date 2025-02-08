@@ -65,26 +65,14 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // POST route for form submission
-// POST route for form submission
 app.post('/postform', upload.array('files', 10), async (req, res) => {
     try {
-        // Parse form data
         const {
-            fy_year,
-            month,
-            head_cat,
-            type,
-            sub_cat,
-            date,
-            received_by,
-            particulars,
-            departments,
-            vehicles,
-            bills,
+            fy_year, month, head_cat, type, sub_cat, date,
+            received_by, particulars, departments, vehicles, bills
         } = req.body;
 
-        // Map files to an array of file names (instead of absolute paths)
-        const uploadedFiles = req.files.map((file) => file.filename); // Extract file names only
+        const uploadedFiles = req.files.map((file) => file.filename);
 
         // Parse JSON fields
         const parsedFyYear = JSON.parse(fy_year);
@@ -97,40 +85,48 @@ app.post('/postform', upload.array('files', 10), async (req, res) => {
         const parsedVehicles = JSON.parse(vehicles);
         const parsedBills = JSON.parse(bills);
 
-        // Calculate TotalAmount by summing up all bill amounts (ensure they are numbers)
+        // Calculate TotalAmount
         const totalAmount = parsedBills.reduce((sum, bill) => sum + Number(bill.amount), 0);
 
-        // Create unique name for the merged PDF file
+        // Create unique merged PDF file name
         const billNo = parsedBills.map((bill) => bill.bill_no).join('_');
         const randomNumber = Math.floor(Math.random() * 10000);
         const mergedPdfFileName = `${billNo}_${date}_${randomNumber}.pdf`;
-
-        // Define the absolute path for the merged PDF
         const mergedPdfPath = path.join(__dirname, 'public/merged_pdf', mergedPdfFileName);
+
         const mergedPdfDoc = await PDFDocument.create();
 
         for (const file of req.files.map((file) => path.join(__dirname, 'public/pdf', file.filename))) {
             const ext = path.extname(file).toLowerCase();
+            const A4_WIDTH = 595;  // A4 width in pixels
+            const A4_HEIGHT = 842; // A4 height in pixels
 
             if (['.png', '.jpeg', '.jpg'].includes(ext)) {
                 try {
-                    // If it's an image, convert it to PDF
-                    const imageBuffer = await sharp(file).toBuffer();
+                    // Resize image to fit within A4 size
+                    const imageBuffer = await sharp(file)
+                        .resize({ width: A4_WIDTH, height: A4_HEIGHT, fit: 'inside' }) // Maintain aspect ratio
+                        .toBuffer();
 
+                    let img;
                     if (ext === '.jpg' || ext === '.jpeg') {
-                        const img = await mergedPdfDoc.embedJpg(imageBuffer);
-                        const page = mergedPdfDoc.addPage([img.width, img.height]);
-                        page.drawImage(img, { x: 0, y: 0 });
+                        img = await mergedPdfDoc.embedJpg(imageBuffer);
                     } else if (ext === '.png') {
-                        const img = await mergedPdfDoc.embedPng(imageBuffer);
-                        const page = mergedPdfDoc.addPage([img.width, img.height]);
-                        page.drawImage(img, { x: 0, y: 0 });
+                        img = await mergedPdfDoc.embedPng(imageBuffer);
                     }
+
+                    const page = mergedPdfDoc.addPage([A4_WIDTH, A4_HEIGHT]);
+                    const imgDims = img.scale(1);
+                    const x = (A4_WIDTH - imgDims.width) / 2;
+                    const y = (A4_HEIGHT - imgDims.height) / 2;
+
+                    page.drawImage(img, { x, y, width: imgDims.width, height: imgDims.height });
+
                 } catch (err) {
                     console.error('Error processing image:', err);
                 }
             } else if (ext === '.pdf') {
-                // If it's a PDF, merge it directly
+                // Merge PDF directly
                 const pdfBytes = fs.readFileSync(file);
                 const pdfDoc = await PDFDocument.load(pdfBytes);
                 const copiedPages = await mergedPdfDoc.copyPages(pdfDoc, pdfDoc.getPageIndices());
@@ -142,10 +138,10 @@ app.post('/postform', upload.array('files', 10), async (req, res) => {
         const mergedPdfBytes = await mergedPdfDoc.save();
         fs.writeFileSync(mergedPdfPath, mergedPdfBytes);
 
-        // Store only the file name for the merged PDF
+        // Store only file name for the merged PDF
         const mergedPdfFileNameOnly = path.basename(mergedPdfPath);
 
-        // Create and save the form entry with file names only
+        // Save form entry
         const Form = new form({
             fy_year: parsedFyYear,
             month: parsedMonth,
@@ -263,8 +259,8 @@ app.get('/getfyyearoption', async (req, res) => {
 
         // Sort the data by fy_name in ascending order
         const sortedFyYears = data.sort((a, b) => {
-            const [startA] = a.fy_name.split('-').map(Number);
-            const [startB] = b.fy_name.split('-').map(Number);
+            const [startA] = a.fy_name.split('-').map(String);
+            const [startB] = b.fy_name.split('-').map(String);
             return startA - startB;
         });
 
@@ -900,6 +896,29 @@ app.get('/getMonthsFromFyYear/:fy_name', async (req, res) => {
       res.json({ fy_name: fyYear.fy_name, months: activeMonths });
     } catch (error) {
       res.status(500).json({ message: 'Server error', error });
+    }
+  });
+
+//   GET FY YEAR FROM THE FORM FOR CS
+
+app.get("/forms_fy_year", async (req, res) => {
+    try {
+      const uniqueFyYears = await form.aggregate([
+        {
+          $group: {
+            _id: "$fy_year._id",
+            fy_name: { $first: "$fy_year.fy_name" },
+          },
+        },
+        {
+          $sort: { fy_name: 1 }, // Sort by fiscal year name if needed
+        },
+      ]);
+  
+      res.json(uniqueFyYears);
+    } catch (error) {
+      console.error("Error fetching unique fiscal years:", error);
+      res.status(500).json({ error: "Internal Server Error" });
     }
   });
 //   TESTING 
