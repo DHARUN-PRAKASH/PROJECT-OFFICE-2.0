@@ -13,8 +13,7 @@ import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import axios from "axios";
 import {
-  getFyYearOptions,
-  getMonthOptions,
+  getFormsFyYear, getMonthsFromFyYear,
   getFormsByFyYearAndMonth,
   dateFilter,
 } from "./axios";
@@ -55,7 +54,8 @@ const ConsolidateAndSummary = () => {
   const [loading, setLoading] = useState(false);
   const [fromDate, setFromDate] = useState(null);
   const [toDate, setToDate] = useState(null);
-  const BASE_URL = "http://localhost:1111"; 
+  const [selectedFyYear, setSelectedFyYear] = useState('');
+  const BASE_URL = "http://localhost:3000";
 
   const handleSnackbarClose = () => {
     setSnackbarOpen(false);
@@ -96,21 +96,51 @@ const ConsolidateAndSummary = () => {
   };
 
   useEffect(() => {
-    const fetchOptions = async () => {
+    const fetchFiscalYears = async () => {
       try {
-        const [fyYears, months] = await Promise.all([
-          getFyYearOptions(),
-          getMonthOptions(),
-        ]);
-        setFyYearOptions(fyYears.map((item) => item.fy_year));
-        setMonthOptions(months.map((item) => item.month));
+        const fyYears = await getFormsFyYear();
+        console.log("Fiscal years fetched:", fyYears);
+
+        if (fyYears && Array.isArray(fyYears)) {
+          setFyYearOptions(fyYears);
+        }
       } catch (error) {
-        console.error("Error fetching options:", error);
+        console.error("Error fetching fiscal years:", error);
       }
     };
 
-    fetchOptions();
+    fetchFiscalYears();
   }, []);
+
+  // Fetch months when fiscal year is selected
+  useEffect(() => {
+    const fetchMonths = async () => {
+      if (!summaryFyYear) {
+        setMonthOptions([]); // Reset months if no fiscal year is selected
+        setSummaryMonth(null);
+        return;
+      }
+
+      try {
+        const response = await getMonthsFromFyYear(summaryFyYear.fy_name);
+        console.log(`Months fetched for ${summaryFyYear.fy_name}:`, response);
+
+        if (response && Array.isArray(response.months)) {
+          setMonthOptions(response.months); // Extract months array
+        } else {
+          setMonthOptions([]); // Reset if response is not valid
+        }
+      } catch (error) {
+        console.error("Error fetching months:", error);
+        setMonthOptions([]); // Reset in case of an error
+      }
+    };
+
+    fetchMonths();
+  }, [summaryFyYear]); // Runs when FY changes
+
+
+
 
   const generatePDF = async () => {
     if (!validateSummaryFields()) return;
@@ -260,7 +290,7 @@ const ConsolidateAndSummary = () => {
         itemDoc.setFillColor(50, 52, 140);
         itemDoc.rect(0, 0, 210, 25, "F");
         itemDoc.text(`CONSOLIDATE REPORT ${i + 1}`, 105, 17, { align: "center" });
-        
+
         // Prepare data for sections
         const generalInfo = [
           ["Field", "Value"],
@@ -269,35 +299,35 @@ const ConsolidateAndSummary = () => {
           ["Head Cat:", item.head_cat ? item.head_cat.head_cat_name : "N/A"],
           ["Sub Cat:", item.sub_cat ? item.sub_cat.sub_cat_name : "N/A"],
         ];
-        
+
         const departments = item.departments && item.departments.length > 0
           ? [["S.No", "Department"], ...item.departments.map((dept, index) => [`${index + 1}.`, dept.dept_full_name || "N/A"])]
           : null;
-        
+
         const vehicles = item.vehicles && item.vehicles.length > 0
           ? [["S.No", "Name", "ID", "Number", "Reg No"], ...item.vehicles.map((vehicle, index) => [
-              `${index + 1}.`,
-              vehicle.vehicle_name || "N/A",
-              vehicle.vehicle_id || "N/A",
-              vehicle.vehicle_number || "N/A",
-              vehicle.vehicle_reg_number || "N/A",
-            ])]
+            `${index + 1}.`,
+            vehicle.vehicle_name || "N/A",
+            vehicle.vehicle_id || "N/A",
+            vehicle.vehicle_number || "N/A",
+            vehicle.vehicle_reg_number || "N/A",
+          ])]
           : null;
-        
+
         const bills = item.bills && item.bills.length > 0
           ? [["S.No", "Bill No", "Amount"], ...item.bills.map((bill, index) => [
-              `${index + 1}.`,
-              bill.bill_no || "N/A",
-              bill.amount || "N/A",
-            ])]
+            `${index + 1}.`,
+            bill.bill_no || "N/A",
+            bill.amount || "N/A",
+          ])]
           : null;
-        
+
         // Render each section
         const pageWidth = 210;
         const boxWidth = 190;
         const x = (pageWidth - boxWidth) / 2;
         let y = 40; // Starting lower to move "General Information" down
-        
+
         // Helper function to render sections
         function renderSection(title, data) {
           // Render section header
@@ -305,7 +335,7 @@ const ConsolidateAndSummary = () => {
           itemDoc.setFont("helvetica", "bold");
           itemDoc.setTextColor(50, 52, 140);
           itemDoc.text(title, x, y);
-        
+
           // Render table
           itemDoc.autoTable({
             head: [data[0]], // First row as table header
@@ -322,33 +352,33 @@ const ConsolidateAndSummary = () => {
             margin: { left: 10, right: 10 },
             tableWidth: boxWidth - 20,
           });
-        
+
           // Update Y position for the next section
           y = itemDoc.lastAutoTable.finalY + 15;
         }
-        
+
         // Render "General Information"
         renderSection("General Information", generalInfo);
-        
+
         // Render "Departments" if available
         if (departments) renderSection("Departments", departments);
-        
+
         // Render "Vehicles" if available
         if (vehicles) renderSection("Vehicles", vehicles);
-        
+
         // Render "Bills" if available
         if (bills) renderSection("Bills", bills);
-        
+
         // Convert the item PDF to a byte array
         const itemPdfBytes = itemDoc.output("arraybuffer");
-        
+
         // Load the item PDF into pdf-lib
         const loadedItemPdf = await PDFDocument.load(itemPdfBytes);
-        
+
         // Copy pages from the item PDF to the consolidated PDF
         const itemPages = await pdfDoc.copyPages(loadedItemPdf, loadedItemPdf.getPageIndices());
         itemPages.forEach((page) => pdfDoc.addPage(page));
-             
+
 
 
         // Fetch and attach the additional PDF if available
@@ -371,15 +401,15 @@ const ConsolidateAndSummary = () => {
         }
       }
 
-//consolidated PDF Open in New Tab 
-const consolidatedPdfBytes = await pdfDoc.save();
-const consolidatedPdfBlob = new Blob([consolidatedPdfBytes], {
-  type: "application/pdf",
-});
-const consolidatedUrl = URL.createObjectURL(consolidatedPdfBlob);
+      //consolidated PDF Open in New Tab 
+      const consolidatedPdfBytes = await pdfDoc.save();
+      const consolidatedPdfBlob = new Blob([consolidatedPdfBytes], {
+        type: "application/pdf",
+      });
+      const consolidatedUrl = URL.createObjectURL(consolidatedPdfBlob);
 
-// Open the PDF in a new page
-window.open(consolidatedUrl, "_blank");
+      // Open the PDF in a new page
+      window.open(consolidatedUrl, "_blank");
 
       // Download the consolidated PDF 
       // const consolidatedPdfBytes = await pdfDoc.save();
@@ -393,7 +423,7 @@ window.open(consolidatedUrl, "_blank");
       // link.click();
       // URL.revokeObjectURL(consolidatedUrl);
       // handleClearConsolidate();
-  
+
       // Show success Snackbar
       setSnackbarMessage("Consolidation PDF generated successfully.");
       setSnackbarSeverity("success");
@@ -416,11 +446,11 @@ window.open(consolidatedUrl, "_blank");
     setConsolidateMonth(null);
   };
 
-  const filterDate = async()=>{
-    const formattedFDate = fromDate ? format(new Date(fromDate),'dd-MM-yyyy') : '';
-    const formattedTDate = toDate ? format(new Date(toDate),'dd-MM-yyyy') : '' ;
-    console.log(formattedFDate + '' +formattedTDate);
-    const date = await dateFilter(formattedFDate,formattedTDate);
+  const filterDate = async () => {
+    const formattedFDate = fromDate ? format(new Date(fromDate), 'dd-MM-yyyy') : '';
+    const formattedTDate = toDate ? format(new Date(toDate), 'dd-MM-yyyy') : '';
+    console.log(formattedFDate + '' + formattedTDate);
+    const date = await dateFilter(formattedFDate, formattedTDate);
     console.log(date);
   }
 
@@ -462,38 +492,53 @@ window.open(consolidatedUrl, "_blank");
           >
             <b>SUMMARY</b>
           </Typography>
+          {/* Fiscal Year Dropdown */}
           <Autocomplete
             style={{ marginTop: "20px" }}
             options={fyYearOptions}
-            getOptionLabel={(option) => option.fy_name}
+            getOptionLabel={(option) => option?.fy_name || ""}
             value={summaryFyYear}
-            onChange={(event, newValue) => setSummaryFyYear(newValue)}
+            onChange={(event, newValue) => {
+              setSummaryFyYear(newValue);
+              setSummaryMonth(null); // Reset month when FY changes
+              setMonthOptions([]); // Clear month options until fetched again
+            }}
+
             renderInput={(params) => (
               <TextField
                 {...params}
                 label="Fiscal Year"
-                error={!!errors.summaryFyYear}
+                error={Boolean(errors.summaryFyYear)} // Properly handle validation error
                 helperText={errors.summaryFyYear || ""}
                 sx={{ "&:hover": { backgroundColor: "#e0e0e0" } }}
               />
             )}
+            disableClearable
+            disabled={fyYearOptions.length === 0}
           />
+
+
+          {/* Month Dropdown */}
           <Autocomplete
             style={{ marginTop: "15px" }}
             options={monthOptions}
-            getOptionLabel={(option) => option.month_name}
+            getOptionLabel={(option) => option?.month_name || ""}
             value={summaryMonth}
             onChange={(event, newValue) => setSummaryMonth(newValue)}
             renderInput={(params) => (
               <TextField
                 {...params}
                 label="Month"
-                error={!!errors.summaryMonth}
+                error={Boolean(errors.summaryMonth)}
                 helperText={errors.summaryMonth || ""}
                 sx={{ "&:hover": { backgroundColor: "#e0e0e0" } }}
               />
             )}
+            disableClearable
+            disabled={!summaryFyYear || monthOptions.length === 0} // Disable if no FY is selected or no months available
           />
+
+
           <Button
             variant="contained"
             color="primary"
@@ -618,39 +663,39 @@ window.open(consolidatedUrl, "_blank");
           >
             <b>FILTER</b>
           </Typography>
-          <div  style={{ marginTop: "20px" }}>
-          <LocalizationProvider dateAdapter={AdapterDateFns} locale={enGB} >
-            <DesktopDatePicker
-              label="Date"
-              format="dd/MM/yyyy"
-              value={fromDate}
-              onChange={(newValue) => setFromDate(newValue)}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  fullWidth
-                  sx={{ "&:hover": { backgroundColor: "#e0e0e0" } }}
-                />
-              )}
-            />
-          </LocalizationProvider>
+          <div style={{ marginTop: "20px" }}>
+            <LocalizationProvider dateAdapter={AdapterDateFns} locale={enGB} >
+              <DesktopDatePicker
+                label="Date"
+                format="dd/MM/yyyy"
+                value={fromDate}
+                onChange={(newValue) => setFromDate(newValue)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    fullWidth
+                    sx={{ "&:hover": { backgroundColor: "#e0e0e0" } }}
+                  />
+                )}
+              />
+            </LocalizationProvider>
           </div>
           <div style={{ marginTop: "15px" }} >
-          <LocalizationProvider dateAdapter={AdapterDateFns} locale={enGB}>
-            <DesktopDatePicker
-              label="Date"
-              format="dd/MM/yyyy"
-              value={toDate}
-              onChange={(newValue) => setToDate(newValue)}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  fullWidth
-                  sx={{ "&:hover": { backgroundColor: "#e0e0e0"} }}
-                />
-              )}
-            />
-          </LocalizationProvider>
+            <LocalizationProvider dateAdapter={AdapterDateFns} locale={enGB}>
+              <DesktopDatePicker
+                label="Date"
+                format="dd/MM/yyyy"
+                value={toDate}
+                onChange={(newValue) => setToDate(newValue)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    fullWidth
+                    sx={{ "&:hover": { backgroundColor: "#e0e0e0" } }}
+                  />
+                )}
+              />
+            </LocalizationProvider>
           </div>
           <Button
             variant="contained"

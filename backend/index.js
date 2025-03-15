@@ -187,7 +187,7 @@ app.get('/fy_year_month/:fy_year/:month', async (req, res) => {
     try {
         // Find the forms where fy_name and month_name match the request params
         const found = await form.find({
-            'fy_year.fy_name': Number(fy_year),
+            'fy_year.fy_name': fy_year,
             'month.month_name': month
         });
 
@@ -878,26 +878,39 @@ app.get('/getforms/:id', async (req, res) => {
 //   GET MONTH BASED ON FY YEAR FROM FY YEAR COLLECTION 
 
 
-app.get('/getMonthsFromFyYear/:fy_name', async (req, res) => {
+app.get('/getMonthsFromFyYear/:fy_year', async (req, res) => {
     try {
-      const { fy_name } = req.params;
-      const fyYear = await fy_year.findOne({ fy_name });
+      const { fy_year } = req.params;
   
-      if (!fyYear) {
-        return res.status(404).json({ message: 'Financial year not found' });
+      // Query the form collection to find documents with the specified fiscal year
+      const forms = await form.find({ 'fy_year.fy_name': fy_year });
+  
+      if (!forms || forms.length === 0) {
+        return res.status(404).json({ error: 'Fiscal year not found or no months available' });
       }
   
-      // Filter only active months
-      const activeMonths = fyYear.months.filter(month => month.month_id);
+      // Map and filter out duplicates while including both month_name and month_id
+      const months = forms
+        .map(form => ({ month_name: form.month.month_name, month_id: form.month.month_id }))
+        .filter((value, index, self) => 
+          index === self.findIndex((t) => (
+            t.month_name === value.month_name
+          ))
+        );
   
-      // Sort active months based on monthOrder
-      activeMonths.sort((a, b) => monthOrder.indexOf(a.month_name) - monthOrder.indexOf(b.month_name));
+      // Sort months by the predefined month order
+      months.sort((a, b) => {
+        return monthOrder.indexOf(a.month_name) - monthOrder.indexOf(b.month_name);
+      });
   
-      res.json({ fy_name: fyYear.fy_name, months: activeMonths });
+      // Return the list of unique months with their month_name and month_id
+      res.json({ months });
     } catch (error) {
-      res.status(500).json({ message: 'Server error', error });
+      res.status(500).json({ error: 'Server error' });
     }
   });
+
+
 
 //   GET FY YEAR FROM THE FORM FOR CS
 
@@ -924,7 +937,7 @@ app.get("/forms_fy_year", async (req, res) => {
 //   TESTING 
 
 app.get('/', (req, res) => {
-    res.send('Welcome to the Drug Interaction API! Use /interactions or /interactions/single.');
+    res.send('Welcome to office backend');
   });
 
 app.listen(1111, () => {

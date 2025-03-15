@@ -96,7 +96,7 @@ GET http://localhost:1111/getFormByType/Type 3
 GET http://localhost:1111/getFormsByEmployeeIDs?emp_ids=22AD063
 Content-Type: application/json
 ### GET FORM DATA BY FY YEAR AND MONTH 
-GET http://localhost:1111/fy_year_month/2025/August
+GET http://localhost:1111/fy_year_month/2026-2027/November
 
 ### TRUE FY YEAR ADMIN 
 POST  http://localhost:1111/settruefyyear

@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // BASE URL
 
-const BASE_URL = "http://localhost:1111";  //90
+const BASE_URL = "http://localhost:1111";  //90 //3000
 
 
 
@@ -66,17 +66,6 @@ export const getHeadCat = async () => {
 export const getSubCat = async () => {
   const response = await axios.get(`${BASE_URL}/getsub_cat`);
   return response.data;
-};
-
-// GET MONTH BASED ON FY YEAR FROM FY YEAR COLLECTION
-export const getMonthsFromFyYear = async (fy_name) => {
-  try {
-    const response = await axios.get(`${BASE_URL}/getMonthsFromFyYear/${fy_name}`);
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching months:", error);
-    throw error;
-  }
 };
 
 export const getMonth = async () => {
@@ -492,5 +481,29 @@ export const lockMonth = async (fy_name, month_name) => {
       console.log('Month Locked:', response.data);
   } catch (error) {
       console.error('Error locking month:', error.response ? error.response.data : error.message);
+  }
+};
+
+// CONSOLIDATE FILTER BY FY YEAR
+
+// Function to get unique fiscal years from the form
+export const getFormsFyYear = async () => {
+  try {
+    const response = await axios.get(`${BASE_URL}/forms_fy_year`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching fiscal years:", error.response?.data || error.message);
+    return null;
+  }
+};
+
+// GET MONTH BASED ON FY YEAR FROM FY YEAR COLLECTION
+export const getMonthsFromFyYear = async (fy_name) => {
+  try {
+    const response = await axios.get(`${BASE_URL}/getMonthsFromFyYear/${fy_name}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching months:", error);
+    throw error;
   }
 };
