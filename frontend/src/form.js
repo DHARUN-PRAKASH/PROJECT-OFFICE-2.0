@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TextField, Button, Autocomplete, Grid, Box, Typography, Chip, Snackbar, Alert, Divider } from '@mui/material';
+import { TextField, Button, Autocomplete, Grid, Box, Typography, Chip, Snackbar, Alert, Divider, IconButton } from '@mui/material';
 import { postform, getHeadCat, getSubCat, getMonth, getDepartment, getEmployee, getVehicle, getFyYear, getMonthsFromFyYear } from './axios';
 import Dash from './dash';
 import { LocalizationProvider } from '@mui/x-date-pickers';
@@ -116,14 +116,14 @@ const Form = ({ handleClose }) => {
           setIsMonthDisabled(true); // Keep it disabled if fetch fails
         }
       };
-  
+
       fetchMonths();
     } else {
       setMonths([]);
       setIsMonthDisabled(true); // Disable dropdown if no FY year is selected
     }
   }, [fy_year]);
-  
+
 
   // FEILD DISABLE LOGICS 
 
@@ -313,7 +313,7 @@ const Form = ({ handleClose }) => {
             boxShadow: 3,
             borderRadius: 3,
             width: '100%',
-            maxWidth: 800,
+            maxWidth: 780,
             bgcolor: 'background.paper',
           }}
         >
@@ -336,7 +336,7 @@ const Form = ({ handleClose }) => {
                   <TextField
                     {...params}
                     label="Fiscal Year"
-                    variant="filled"
+                    variant="outlined"
                     error={!!errors.fy_year}
                     helperText={errors.fy_year || ''}
                   />
@@ -344,22 +344,22 @@ const Form = ({ handleClose }) => {
               />
             </Grid>
             <Grid item xs={12} md={4}>
-            <Autocomplete
-  options={months}
-  getOptionLabel={(option) => option.month_name}
-  value={month}
-  onChange={(e, newValue) => setMonth(newValue)}
-  disabled={isMonthDisabled} // Disable logic applied here
-  renderInput={(params) => (
-    <TextField
-      {...params}
-      label="Month"
-      variant="filled"
-      error={!!errors.month}
-      helperText={errors.month || ''}
-    />
-  )}
-/>
+              <Autocomplete
+                options={months}
+                getOptionLabel={(option) => option.month_name}
+                value={month}
+                onChange={(e, newValue) => setMonth(newValue)}
+                disabled={isMonthDisabled} // Disable logic applied here
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Month"
+                    variant="outlined"
+                    error={!!errors.month}
+                    helperText={errors.month || ''}
+                  />
+                )}
+              />
 
             </Grid>
             <Grid item xs={12} md={4}>
@@ -372,7 +372,7 @@ const Form = ({ handleClose }) => {
                   renderInput={(params) => (
                     <TextField
                       {...params}
-                      variant="filled"
+                      variant="outlined"
                       fullWidth
                       error={!!errors.date}
                       helperText={errors.date}
@@ -381,8 +381,7 @@ const Form = ({ handleClose }) => {
                 />
               </LocalizationProvider>
             </Grid>
-
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={4}>
               <Autocomplete
                 options={headCats}
                 getOptionLabel={(option) => option.head_cat_name}
@@ -400,14 +399,14 @@ const Form = ({ handleClose }) => {
                   <TextField
                     {...params}
                     label="Head Category"
-                    variant="filled"
+                    variant="outlined"
                     error={!!errors.head_cat}
                     helperText={errors.head_cat || ''}
                   />
                 )}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={4}>
               <Autocomplete
                 options={typeOption}
                 value={type}
@@ -416,7 +415,7 @@ const Form = ({ handleClose }) => {
                   <TextField
                     {...params}
                     label="Type"
-                    variant="filled"
+                    variant="outlined"
                     error={!!errors.type}
                     helperText={errors.type || ''}
                   />
@@ -424,7 +423,7 @@ const Form = ({ handleClose }) => {
               />
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={4}>
               <Autocomplete
                 options={subCats}
                 getOptionLabel={(option) => option.sub_cat_name}
@@ -434,7 +433,7 @@ const Form = ({ handleClose }) => {
                   <TextField
                     {...params}
                     label="Sub Category"
-                    variant="filled"
+                    variant="outlined"
                     error={!!errors.sub_cat}
                     helperText={errors.sub_cat || ''}
                   />
@@ -443,7 +442,7 @@ const Form = ({ handleClose }) => {
               />
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={4}>
               <Autocomplete
                 multiple
                 options={departmentsList}
@@ -454,7 +453,7 @@ const Form = ({ handleClose }) => {
                   <TextField
                     {...params}
                     label="Departments"
-                    variant="filled"
+                    variant="outlined"
                     error={!!errors.departments}
                     helperText={errors.departments || ''}
                   />
@@ -463,7 +462,7 @@ const Form = ({ handleClose }) => {
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} md={4}>
               <Autocomplete
                 multiple
                 options={vehiclesList}
@@ -474,7 +473,7 @@ const Form = ({ handleClose }) => {
                   <TextField
                     {...params}
                     label="Vehicles"
-                    variant="filled"
+                    variant="outlined"
                     error={!!errors.vehicles}
                     helperText={errors.vehicles || ''}
                     sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
@@ -485,7 +484,7 @@ const Form = ({ handleClose }) => {
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} md={4}>
               <Autocomplete
                 multiple
                 options={employees}
@@ -498,7 +497,7 @@ const Form = ({ handleClose }) => {
                   <TextField
                     {...params}
                     label="Received By"
-                    variant="filled"
+                    variant="outlined"
                     error={!!errors.received_by}
                     helperText={errors.received_by || ''}
                     sx={{ '&:hover': { backgroundColor: '#e0e0e0' } }}
@@ -513,7 +512,7 @@ const Form = ({ handleClose }) => {
                 multiline
                 fullWidth
                 label="Particulars"
-                variant="filled"
+                variant="outlined"
                 value={particulars}
                 onChange={(e) => setParticulars(e.target.value)}
                 error={!!errors.particulars}
@@ -522,17 +521,14 @@ const Form = ({ handleClose }) => {
                 rows={4}
               />
             </Grid>
-
-
-
             <Grid item xs={12}>
               {bills.map((bill, index) => (
-                <Box key={index} mb={2}>
+                <Box key={index} mb={2} sx={{ bgcolor: '#f9f9f9', p: 2, borderRadius: 2 }}>
                   <Grid container spacing={2}>
-                    <Grid item xs={12} md={4}>
+                    <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth
-                        variant="filled"
+                        variant="outlined"
                         label="Bill Number"
                         value={bill.bill_no}
                         onChange={(e) => handleBillChange(index, 'bill_no', e.target.value)}
@@ -541,12 +537,12 @@ const Form = ({ handleClose }) => {
                       />
                     </Grid>
 
-                    <Grid item xs={12} md={4}>
+                    <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth
                         label="Amount"
                         type="number"
-                        variant="filled"
+                        variant="outlined"
                         value={bill.amount}
                         onChange={(e) => handleBillChange(index, 'amount', e.target.value)}
                         error={!!errors[`amount_${index}`]}
@@ -554,13 +550,13 @@ const Form = ({ handleClose }) => {
                       />
                     </Grid>
 
-                    <Grid item xs={12} md={2}>
+                    <Grid item xs={12} md={11}>
                       <Button
                         variant="contained"
                         component="label"
                         fullWidth
                         startIcon={<UploadFileIcon />}
-                        sx={{ bgcolor: '#32348c' }}
+                        sx={{ bgcolor: '#32348c' ,borderRadius: 50 }}
                       >
                         Upload
                         <input
@@ -573,17 +569,22 @@ const Form = ({ handleClose }) => {
                       </Button>
                     </Grid>
 
-                    <Grid item xs={12} md={2}>
-                      <Button
-                        variant="contained"
-                        fullWidth
-                        startIcon={<DeleteIcon />}
-                        color="error"
-                        onClick={() => removeBill(index)}
-                        disabled={bills.length === 1}
-                      >
-                        Delete
-                      </Button>
+                    <Grid item xs={12} md={1}>
+                    <IconButton
+  variant="outlined"
+  sx={{
+    color: 'white',
+    backgroundColor: '#d32f2f',
+    '&:hover': {
+      backgroundColor: '#b71c1c', // Darker red on hover
+    },
+  }}
+  onClick={() => removeBill(index)}
+  disabled={bills.length === 1}
+>
+  <DeleteIcon />
+</IconButton>
+
                     </Grid>
                   </Grid>
 
@@ -597,18 +598,17 @@ const Form = ({ handleClose }) => {
                       />
                     ))}
                   </Box>
-                  <Divider sx={{ my: 2 }} />
                 </Box>
               ))}
 
               <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <Button
-                    startIcon={<AddCircleOutlineIcon />}
-                    onClick={addNewBill}
-                    sx={{ mb: 2, color: '#32348c' }}
-                  >
-                    Add Bill
-                  </Button>
+                <Button
+                  startIcon={<AddCircleOutlineIcon />}
+                  onClick={addNewBill}
+                  sx={{ mb: 2, color: '#32348c' }}
+                >
+                  Add Bill
+                </Button>
               </Box>
             </Grid>
             <Grid container spacing={2}>

@@ -68,7 +68,8 @@ export const Admin = () => {
       return;
     }
     try {
-      await lockMonth(selectedFyYear, selectedMonth);
+      const formattedMonth = new Intl.DateTimeFormat("en-US", { month: "long" }).format(selectedMonth);
+      await lockMonth(selectedFyYear, formattedMonth);
       showSnackbar("Month locked successfully", "success");
       setRefreshTable((prev) => !prev); // Trigger AdminTable refresh
     } catch (error) {

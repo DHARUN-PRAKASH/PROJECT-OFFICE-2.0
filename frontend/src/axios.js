@@ -68,6 +68,16 @@ export const getSubCat = async () => {
   return response.data;
 };
 
+export const getMonthsFromFyYear = async (fy_name) => {
+  try {
+    const response = await axios.get(`${BASE_URL}/getMonthsFromFyYear/${fy_name}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching months:", error);
+    throw error;
+  }
+};
+
 export const getMonth = async () => {
   const response = await axios.get(`${BASE_URL}/getmonth`);
   return response.data;
@@ -498,9 +508,9 @@ export const getFormsFyYear = async () => {
 };
 
 // GET MONTH BASED ON FY YEAR FROM FY YEAR COLLECTION
-export const getMonthsFromFyYear = async (fy_name) => {
+export const getFormsMonthsFromFyYear = async (fy_name) => {
   try {
-    const response = await axios.get(`${BASE_URL}/getMonthsFromFyYear/${fy_name}`);
+    const response = await axios.get(`${BASE_URL}/getFormsMonthsFromFyYear/${fy_name}`);
     return response.data;
   } catch (error) {
     console.error("Error fetching months:", error);

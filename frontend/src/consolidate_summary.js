@@ -8,12 +8,13 @@ import {
   IconButton,
   Snackbar,
   Alert,
+  Grid
 } from "@mui/material";
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import axios from "axios";
 import {
-  getFormsFyYear, getMonthsFromFyYear,
+  getFormsFyYear, getFormsMonthsFromFyYear,
   getFormsByFyYearAndMonth,
   dateFilter,
 } from "./axios";
@@ -55,7 +56,9 @@ const ConsolidateAndSummary = () => {
   const [fromDate, setFromDate] = useState(null);
   const [toDate, setToDate] = useState(null);
   const [selectedFyYear, setSelectedFyYear] = useState('');
-  const BASE_URL = "http://localhost:3000";
+const [consolidateMonthOptions, setConsolidateMonthOptions] = useState([]); 
+
+  const BASE_URL = "http://localhost:1111";
 
   const handleSnackbarClose = () => {
     setSnackbarOpen(false);
@@ -96,48 +99,55 @@ const ConsolidateAndSummary = () => {
   };
 
   useEffect(() => {
-    const fetchFiscalYears = async () => {
+    const fetchFyYearsAndMonths = async () => {
       try {
+        // Fetch Fiscal Years
         const fyYears = await getFormsFyYear();
         console.log("Fiscal years fetched:", fyYears);
-
+  
         if (fyYears && Array.isArray(fyYears)) {
           setFyYearOptions(fyYears);
         }
-      } catch (error) {
-        console.error("Error fetching fiscal years:", error);
-      }
-    };
-
-    fetchFiscalYears();
-  }, []);
-
-  // Fetch months when fiscal year is selected
-  useEffect(() => {
-    const fetchMonths = async () => {
-      if (!summaryFyYear) {
-        setMonthOptions([]); // Reset months if no fiscal year is selected
-        setSummaryMonth(null);
-        return;
-      }
-
-      try {
-        const response = await getMonthsFromFyYear(summaryFyYear.fy_name);
-        console.log(`Months fetched for ${summaryFyYear.fy_name}:`, response);
-
-        if (response && Array.isArray(response.months)) {
-          setMonthOptions(response.months); // Extract months array
+  
+        // Fetch months for selected Fiscal Year for Summary and Consolidate
+        const fetchMonths = async (fyYear) => {
+          if (!fyYear) {
+            return [];
+          }
+  
+          try {
+            const response = await getFormsMonthsFromFyYear(fyYear.fy_name);
+            console.log(`Months fetched for ${fyYear.fy_name}:`, response);
+  
+            return response?.months || [];
+          } catch (error) {
+            console.error("Error fetching months:", error);
+            return [];
+          }
+        };
+  
+        if (summaryFyYear) {
+          const summaryMonths = await fetchMonths(summaryFyYear);
+          setMonthOptions(summaryMonths); // Set for Summary
         } else {
-          setMonthOptions([]); // Reset if response is not valid
+          setMonthOptions([]); // Reset months if no summary FY is selected
         }
+  
+        if (consolidateFyYear) {
+          const consolidateMonths = await fetchMonths(consolidateFyYear);
+          setConsolidateMonthOptions(consolidateMonths); // Set for Consolidate
+        } else {
+          setConsolidateMonthOptions([]); // Reset months if no consolidate FY is selected
+        }
+  
       } catch (error) {
-        console.error("Error fetching months:", error);
-        setMonthOptions([]); // Reset in case of an error
+        console.error("Error fetching fiscal years and months:", error);
       }
     };
-
-    fetchMonths();
-  }, [summaryFyYear]); // Runs when FY changes
+  
+    fetchFyYearsAndMonths();
+  }, [summaryFyYear, consolidateFyYear]); // Runs when either FY changes
+  
 
 
 
@@ -402,27 +412,27 @@ const ConsolidateAndSummary = () => {
       }
 
       //consolidated PDF Open in New Tab 
-      const consolidatedPdfBytes = await pdfDoc.save();
-      const consolidatedPdfBlob = new Blob([consolidatedPdfBytes], {
-        type: "application/pdf",
-      });
-      const consolidatedUrl = URL.createObjectURL(consolidatedPdfBlob);
-
-      // Open the PDF in a new page
-      window.open(consolidatedUrl, "_blank");
-
-      // Download the consolidated PDF 
       // const consolidatedPdfBytes = await pdfDoc.save();
       // const consolidatedPdfBlob = new Blob([consolidatedPdfBytes], {
       //   type: "application/pdf",
       // });
       // const consolidatedUrl = URL.createObjectURL(consolidatedPdfBlob);
-      // const link = document.createElement("a");
-      // link.href = consolidatedUrl;
-      // link.download = "consolidated-report.pdf";
-      // link.click();
-      // URL.revokeObjectURL(consolidatedUrl);
-      // handleClearConsolidate();
+
+      // // Open the PDF in a new page
+      // window.open(consolidatedUrl, "_blank");
+
+      // Download the consolidated PDF 
+      const consolidatedPdfBytes = await pdfDoc.save();
+      const consolidatedPdfBlob = new Blob([consolidatedPdfBytes], {
+        type: "application/pdf",
+      });
+      const consolidatedUrl = URL.createObjectURL(consolidatedPdfBlob);
+      const link = document.createElement("a");
+      link.href = consolidatedUrl;
+      link.download = "consolidated-report.pdf";
+      link.click();
+      URL.revokeObjectURL(consolidatedUrl);
+      handleClearConsolidate();
 
       // Show success Snackbar
       setSnackbarMessage("Consolidation PDF generated successfully.");
@@ -446,39 +456,231 @@ const ConsolidateAndSummary = () => {
     setConsolidateMonth(null);
   };
 
+  const handleClearDate = () => {
+    setToDate(null);
+    setFromDate(null);
+  };
+
   const filterDate = async () => {
     const formattedFDate = fromDate ? format(new Date(fromDate), 'dd-MM-yyyy') : '';
     const formattedTDate = toDate ? format(new Date(toDate), 'dd-MM-yyyy') : '';
-    console.log(formattedFDate + '' + formattedTDate);
-    const date = await dateFilter(formattedFDate, formattedTDate);
-    console.log(date);
-  }
+    console.log(formattedFDate + ' ' + formattedTDate);
+  
+    try {
+      // Fetch the filtered data based on the date range
+      const dateFilteredData = await dateFilter(formattedFDate, formattedTDate);
+      console.log("Filtered Date Data:", dateFilteredData);
+  
+      if (!dateFilteredData || dateFilteredData.length === 0) {
+        setSnackbarMessage("No data found for the selected date range.");
+        setSnackbarSeverity("warning");
+        setSnackbarOpen(true);
+        return;
+      }
+  
+      // Create a new PDF document for the filtered date data
+      const pdfDoc = await PDFDocument.create();
+  
+      // Step 1: Generate the summary PDF in memory for the filtered date data
+      const summaryDoc = new jsPDF();
+  
+      // Add centered "Summary Report" title with background color and white text
+      summaryDoc.setFontSize(20);
+      summaryDoc.setFont("helvetica", "bold");
+      summaryDoc.setTextColor(255, 255, 255);
+      summaryDoc.setFillColor(50, 52, 140);
+      summaryDoc.rect(0, 0, 210, 25, "F");
+      summaryDoc.text("SUMMARY REPORT", 105, 17, { align: "center" });
+  
+      summaryDoc.setFontSize(12);
+      summaryDoc.setTextColor(50, 50, 50);
+      summaryDoc.autoTable({
+        head: [["S.No", "Date", "Particulars", "Total Amount"]],
+        body: dateFilteredData.map((item, index) => [
+          index + 1,
+          item.date,
+          item.particulars,
+          item.TotalAmount,
+        ]),
+        startY: 30,
+        headStyles: {
+          fillColor: [50, 52, 140],
+          textColor: 255,
+          fontSize: 12,
+          fontStyle: "bold",
+        },
+        bodyStyles: { textColor: 50, fontSize: 10 },
+        theme: "grid",
+        margin: { left: 10, right: 10 },
+      });
+  
+      const summaryPdfBytes = summaryDoc.output("arraybuffer");
+  
+      // Load the summary PDF into pdf-lib
+      const loadedSummaryPdf = await PDFDocument.load(summaryPdfBytes);
+  
+      // Copy pages from the summary PDF to the consolidated PDF
+      const summaryPages = await pdfDoc.copyPages(
+        loadedSummaryPdf,
+        loadedSummaryPdf.getPageIndices()
+      );
+      summaryPages.forEach((page) => {
+        pdfDoc.addPage(page);
+      });
+  
+      // Step 2: Add additional PDF content after the summary based on filtered data
+      for (let i = 0; i < dateFilteredData.length; i++) {
+        const item = dateFilteredData[i];
+  
+        const itemDoc = new jsPDF();
+  
+        // Add centered "CONSOLIDATE REPORT" title with background color and white text
+        itemDoc.setFontSize(22);
+        itemDoc.setFont("helvetica", "bold");
+        itemDoc.setTextColor(255, 255, 255);
+        itemDoc.setFillColor(50, 52, 140);
+        itemDoc.rect(0, 0, 210, 25, "F");
+        itemDoc.text(`CONSOLIDATE REPORT ${i + 1}`, 105, 17, { align: "center" });
+  
+        // Prepare data for sections (similar to your existing logic)
+        const generalInfo = [
+          ["Field", "Value"],
+          ["Particulars:", item.particulars || "N/A"],
+          ["Total Amount:", item.TotalAmount || "N/A"],
+          ["Head Cat:", item.head_cat ? item.head_cat.head_cat_name : "N/A"],
+          ["Sub Cat:", item.sub_cat ? item.sub_cat.sub_cat_name : "N/A"],
+        ];
+  
+        const departments = item.departments && item.departments.length > 0
+          ? [["S.No", "Department"], ...item.departments.map((dept, index) => [`${index + 1}.`, dept.dept_full_name || "N/A"])]
+          : null;
+  
+        const vehicles = item.vehicles && item.vehicles.length > 0
+          ? [["S.No", "Name", "ID", "Number", "Reg No"], ...item.vehicles.map((vehicle, index) => [
+            `${index + 1}.`,
+            vehicle.vehicle_name || "N/A",
+            vehicle.vehicle_id || "N/A",
+            vehicle.vehicle_number || "N/A",
+            vehicle.vehicle_reg_number || "N/A",
+          ])]
+          : null;
+  
+        const bills = item.bills && item.bills.length > 0
+          ? [["S.No", "Bill No", "Amount"], ...item.bills.map((bill, index) => [
+            `${index + 1}.`,
+            bill.bill_no || "N/A",
+            bill.amount || "N/A",
+          ])]
+          : null;
+  
+        // Render each section (you already have this logic)
+        const pageWidth = 210;
+        const boxWidth = 190;
+        const x = (pageWidth - boxWidth) / 2;
+        let y = 40;
+  
+        function renderSection(title, data) {
+          itemDoc.setFontSize(16);
+          itemDoc.setFont("helvetica", "bold");
+          itemDoc.setTextColor(50, 52, 140);
+          itemDoc.text(title, x, y);
+  
+          itemDoc.autoTable({
+            head: [data[0]],
+            body: data.slice(1),
+            startY: y + 10,
+            headStyles: {
+              fillColor: [50, 52, 140],
+              textColor: 255,
+              fontSize: 12,
+              fontStyle: "bold",
+            },
+            bodyStyles: { textColor: 50, fontSize: 10 },
+            theme: "grid",
+            margin: { left: 10, right: 10 },
+            tableWidth: boxWidth - 20,
+          });
+  
+          y = itemDoc.lastAutoTable.finalY + 15;
+        }
+  
+        renderSection("General Information", generalInfo);
+  
+        if (departments) renderSection("Departments", departments);
+        if (vehicles) renderSection("Vehicles", vehicles);
+        if (bills) renderSection("Bills", bills);
+  
+        const itemPdfBytes = itemDoc.output("arraybuffer");
+        const loadedItemPdf = await PDFDocument.load(itemPdfBytes);
+  
+        const itemPages = await pdfDoc.copyPages(loadedItemPdf, loadedItemPdf.getPageIndices());
+        itemPages.forEach((page) => pdfDoc.addPage(page));
+  
+        // Fetch and attach the additional merged PDF if available
+        const fileUrl = `${BASE_URL}/merged_pdf/${item.merged_pdf}`;
+        const pdfBlob = await fetchPDF(fileUrl);
+  
+        if (pdfBlob) {
+          const externalPdfDoc = await PDFDocument.load(await pdfBlob.arrayBuffer());
+          const externalPages = await pdfDoc.copyPages(externalPdfDoc, externalPdfDoc.getPageIndices());
+  
+          externalPages.forEach((page) => {
+            pdfDoc.addPage(page);
+          });
+        }
+      }
+  
+      //consolidated PDF Open in New Tab 
+      // const consolidatedPdfBytes = await pdfDoc.save();
+      // const consolidatedPdfBlob = new Blob([consolidatedPdfBytes], {
+      //   type: "application/pdf",
+      // });
+      // const consolidatedUrl = URL.createObjectURL(consolidatedPdfBlob);
 
-  return (
-    <div>
-      <Dash />
+      // // Open the PDF in a new page
+      // window.open(consolidatedUrl, "_blank");
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          marginTop: "30px",
-          paddingTop: "100px",
-          width: "100%",
-          gap: "30px",
-        }}
-      >
-        {/* Summary Box */}
+      // Download the consolidated PDF 
+      const consolidatedPdfBytes = await pdfDoc.save();
+      const consolidatedPdfBlob = new Blob([consolidatedPdfBytes], {
+        type: "application/pdf",
+      });
+      const consolidatedUrl = URL.createObjectURL(consolidatedPdfBlob);
+      const link = document.createElement("a");
+      link.href = consolidatedUrl;
+      link.download = "consolidated-report.pdf";
+      link.click();
+      URL.revokeObjectURL(consolidatedUrl);
+      handleClearDate();
+
+      // Show success Snackbar
+      setSnackbarMessage("Consolidation PDF generated successfully.");
+      setSnackbarSeverity("success");
+      setSnackbarOpen(true);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      setSnackbarMessage("Error generating Consolidation PDF.");
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
+    }
+  };
+  
+
+return (
+  <div>
+    <Dash />
+
+    <Grid container spacing={3} justifyContent="center" sx={{ marginTop: "30px", paddingTop: "100px" }}>
+      {/* Summary Box */}
+      <Grid item xs={12} sm={6} md={4}>
         <Box
           p={2}
           bgcolor="background.paper"
           borderRadius="10px"
           sx={{
             height: "auto",
-            width: "30%",
             boxShadow: "0 4px 8px rgba(0,0,0,0.3)",
-          }} // Adjusted width
+          }}
         >
           <Typography
             variant="h4"
@@ -492,6 +694,7 @@ const ConsolidateAndSummary = () => {
           >
             <b>SUMMARY</b>
           </Typography>
+
           {/* Fiscal Year Dropdown */}
           <Autocomplete
             style={{ marginTop: "20px" }}
@@ -503,12 +706,11 @@ const ConsolidateAndSummary = () => {
               setSummaryMonth(null); // Reset month when FY changes
               setMonthOptions([]); // Clear month options until fetched again
             }}
-
             renderInput={(params) => (
               <TextField
                 {...params}
                 label="Fiscal Year"
-                error={Boolean(errors.summaryFyYear)} // Properly handle validation error
+                error={Boolean(errors.summaryFyYear)}
                 helperText={errors.summaryFyYear || ""}
                 sx={{ "&:hover": { backgroundColor: "#e0e0e0" } }}
               />
@@ -516,7 +718,6 @@ const ConsolidateAndSummary = () => {
             disableClearable
             disabled={fyYearOptions.length === 0}
           />
-
 
           {/* Month Dropdown */}
           <Autocomplete
@@ -535,9 +736,8 @@ const ConsolidateAndSummary = () => {
               />
             )}
             disableClearable
-            disabled={!summaryFyYear || monthOptions.length === 0} // Disable if no FY is selected or no months available
+            disabled={!summaryFyYear || monthOptions.length === 0}
           />
-
 
           <Button
             variant="contained"
@@ -561,17 +761,18 @@ const ConsolidateAndSummary = () => {
             Clear
           </Button>
         </Box>
+      </Grid>
 
-        {/* Consolidate Box */}
+      {/* Consolidate Box */}
+      <Grid item xs={12} sm={6} md={4}>
         <Box
           p={2}
           bgcolor="background.paper"
           borderRadius="10px"
           sx={{
             height: "auto",
-            width: "30%",
             boxShadow: "0 4px 8px rgba(0,0,0,0.3)",
-          }} // Adjusted width
+          }}
         >
           <Typography
             variant="h4"
@@ -585,38 +786,51 @@ const ConsolidateAndSummary = () => {
           >
             <b>CONSOLIDATE</b>
           </Typography>
+
+          {/* Fiscal Year Dropdown */}
           <Autocomplete
             style={{ marginTop: "20px" }}
             options={fyYearOptions}
             getOptionLabel={(option) => option.fy_name}
             value={consolidateFyYear}
-            onChange={(event, newValue) => setConsolidateFyYear(newValue)}
+            onChange={(event, newValue) => {
+              setConsolidateFyYear(newValue);
+              setConsolidateMonth(null); // Reset month when FY changes
+              setConsolidateMonthOptions([]); // Clear month options until fetched again
+            }}
             renderInput={(params) => (
               <TextField
                 {...params}
-                label="Fy  Year"
-                error={!!errors.consolidateFyYear}
+                label="Fy Year"
+                error={Boolean(errors.consolidateFyYear)}
                 helperText={errors.consolidateFyYear || ""}
                 sx={{ "&:hover": { backgroundColor: "#e0e0e0" } }}
               />
             )}
+            disableClearable
+            disabled={fyYearOptions.length === 0}
           />
+
+          {/* Month Dropdown */}
           <Autocomplete
             style={{ marginTop: "15px" }}
-            options={monthOptions}
-            getOptionLabel={(option) => option.month_name}
+            options={consolidateMonthOptions}
+            getOptionLabel={(option) => option?.month_name || ""}
             value={consolidateMonth}
             onChange={(event, newValue) => setConsolidateMonth(newValue)}
             renderInput={(params) => (
               <TextField
                 {...params}
                 label="Month"
-                error={!!errors.consolidateMonth}
+                error={Boolean(errors.consolidateMonth)}
                 helperText={errors.consolidateMonth || ""}
                 sx={{ "&:hover": { backgroundColor: "#e0e0e0" } }}
               />
             )}
+            disableClearable
+            disabled={!consolidateFyYear || consolidateMonthOptions.length === 0}
           />
+
           <Button
             variant="contained"
             color="primary"
@@ -639,17 +853,18 @@ const ConsolidateAndSummary = () => {
             Clear
           </Button>
         </Box>
+      </Grid>
 
-        {/* Filter */}
+      {/* Filter Box */}
+      <Grid item xs={12} sm={6} md={4}>
         <Box
           p={2}
           bgcolor="background.paper"
           borderRadius="10px"
           sx={{
             height: "auto",
-            width: "30%",
             boxShadow: "0 4px 8px rgba(0,0,0,0.3)",
-          }} // Adjusted width
+          }}
         >
           <Typography
             variant="h4"
@@ -663,10 +878,12 @@ const ConsolidateAndSummary = () => {
           >
             <b>FILTER</b>
           </Typography>
+
+          {/* Date Pickers */}
           <div style={{ marginTop: "20px" }}>
-            <LocalizationProvider dateAdapter={AdapterDateFns} locale={enGB} >
+            <LocalizationProvider dateAdapter={AdapterDateFns} locale={enGB}>
               <DesktopDatePicker
-                label="Date"
+                label="From Date"
                 format="dd/MM/yyyy"
                 value={fromDate}
                 onChange={(newValue) => setFromDate(newValue)}
@@ -680,10 +897,11 @@ const ConsolidateAndSummary = () => {
               />
             </LocalizationProvider>
           </div>
-          <div style={{ marginTop: "15px" }} >
+
+          <div style={{ marginTop: "15px" }}>
             <LocalizationProvider dateAdapter={AdapterDateFns} locale={enGB}>
               <DesktopDatePicker
-                label="Date"
+                label="To Date"
                 format="dd/MM/yyyy"
                 value={toDate}
                 onChange={(newValue) => setToDate(newValue)}
@@ -697,6 +915,7 @@ const ConsolidateAndSummary = () => {
               />
             </LocalizationProvider>
           </div>
+
           <Button
             variant="contained"
             color="primary"
@@ -708,7 +927,7 @@ const ConsolidateAndSummary = () => {
           <Button
             variant="contained"
             color="error"
-            onClick={handleClearConsolidate}
+            onClick={handleClearDate}
             sx={{
               mt: 2,
               display: "block",
@@ -719,24 +938,21 @@ const ConsolidateAndSummary = () => {
             Clear
           </Button>
         </Box>
+      </Grid>
+    </Grid>
 
-      </div>
-      <Snackbar
-        open={snackbarOpen}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-        autoHideDuration={3000}
-        onClose={handleSnackbarClose}
-      >
-        <Alert
-          onClose={handleSnackbarClose}
-          severity={snackbarSeverity}
-          sx={{ width: "100%" }}
-        >
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
-    </div>
-  );
+    <Snackbar
+      open={snackbarOpen}
+      anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      autoHideDuration={3000}
+      onClose={handleSnackbarClose}
+    >
+      <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: "100%" }}>
+        {snackbarMessage}
+      </Alert>
+    </Snackbar>
+  </div>
+);
 };
 
 export default ConsolidateAndSummary;
