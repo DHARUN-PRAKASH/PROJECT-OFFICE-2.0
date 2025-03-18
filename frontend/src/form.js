@@ -304,7 +304,7 @@ const Form = ({ handleClose }) => {
   return (
     <div>
       <Dash />
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 13, px: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 13}}>
         <Box
           component="form"
           onSubmit={handleSubmit}
@@ -321,7 +321,7 @@ const Form = ({ handleClose }) => {
             variant="h4"
             component="h2"
             gutterBottom
-            sx={{ bgcolor: '#32348c', color: '#fff', textAlign: 'center', borderRadius: 2, p: 1 }}
+            sx={{ bgcolor: '#32348c', color: '#fff', textAlign: 'center', p: 1 }}
           >
             <b>REPORT</b>
           </Typography>
@@ -530,6 +530,7 @@ const Form = ({ handleClose }) => {
                         fullWidth
                         variant="outlined"
                         label="Bill Number"
+                        size='small'
                         value={bill.bill_no}
                         onChange={(e) => handleBillChange(index, 'bill_no', e.target.value)}
                         error={!!errors[`bill_no_${index}`]}
@@ -543,6 +544,7 @@ const Form = ({ handleClose }) => {
                         label="Amount"
                         type="number"
                         variant="outlined"
+                        size='small'
                         value={bill.amount}
                         onChange={(e) => handleBillChange(index, 'amount', e.target.value)}
                         error={!!errors[`amount_${index}`]}

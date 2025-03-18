@@ -671,29 +671,32 @@ return (
     <Dash />
 
     <Grid container spacing={3} justifyContent="center" sx={{ marginTop: "30px", paddingTop: "100px" }}>
-      {/* Summary Box */}
-      <Grid item xs={12} sm={6} md={4}>
-        <Box
-          p={2}
-          bgcolor="background.paper"
-          borderRadius="10px"
-          sx={{
-            height: "auto",
-            boxShadow: "0 4px 8px rgba(0,0,0,0.3)",
-          }}
-        >
-          <Typography
-            variant="h4"
-            sx={{
-              color: "white",
-              backgroundColor: "#32348c",
-              padding: "10px",
-              borderRadius: "50px",
-              textAlign: "center",
-            }}
-          >
-            <b>SUMMARY</b>
-          </Typography>
+  {/* Summary Box */}
+  <Grid item xs={12} sm={6} md={4}>
+    <Box
+      p={2}
+      bgcolor="background.paper"
+      borderRadius="10px"
+      sx={{
+        height: "auto",
+        boxShadow: "0 4px 8px rgba(0,0,0,0.3)",
+      }}
+    >
+      {/* Title properly aligned with Box */}
+      <Typography
+        variant="h4"
+        sx={{
+          color: "white",
+          backgroundColor: "#32348c",
+          padding: "10px 0", // Only vertical padding
+          borderRadius: "10px 10px 0 0", // Rounded only at the top
+          textAlign: "center",
+          width: "100%", // Ensures it spans full width
+          display: "block",
+        }}
+      >
+        <b>SUMMARY</b>
+      </Typography>
 
           {/* Fiscal Year Dropdown */}
           <Autocomplete
@@ -741,7 +744,7 @@ return (
 
           <Button
             variant="contained"
-            color="primary"
+            color="success"
             onClick={generatePDF}
             style={{ width: "100%", marginTop: "10px", borderRadius: "50px" }}
           >
@@ -765,27 +768,30 @@ return (
 
       {/* Consolidate Box */}
       <Grid item xs={12} sm={6} md={4}>
-        <Box
-          p={2}
-          bgcolor="background.paper"
-          borderRadius="10px"
-          sx={{
-            height: "auto",
-            boxShadow: "0 4px 8px rgba(0,0,0,0.3)",
-          }}
-        >
-          <Typography
-            variant="h4"
-            sx={{
-              color: "white",
-              backgroundColor: "#32348c",
-              padding: "10px",
-              borderRadius: "50px",
-              textAlign: "center",
-            }}
-          >
-            <b>CONSOLIDATE</b>
-          </Typography>
+    <Box
+      p={2}
+      bgcolor="background.paper"
+      borderRadius="10px"
+      sx={{
+        height: "auto",
+        boxShadow: "0 4px 8px rgba(0,0,0,0.3)",
+      }}
+    >
+      {/* Title properly aligned with Box */}
+      <Typography
+        variant="h4"
+        sx={{
+          color: "white",
+          backgroundColor: "#32348c",
+          padding: "10px 0", // Only vertical padding
+          borderRadius: "10px 10px 0 0", // Rounded only at the top
+          textAlign: "center",
+          width: "100%", // Ensures it spans full width
+          display: "block",
+        }}
+      >
+        <b>CONSOLIDATE</b>
+      </Typography>
 
           {/* Fiscal Year Dropdown */}
           <Autocomplete
@@ -833,7 +839,7 @@ return (
 
           <Button
             variant="contained"
-            color="primary"
+            color="success"
             onClick={handleConsolidate}
             style={{ width: "100%", marginTop: "10px", borderRadius: "50px" }}
           >
@@ -856,29 +862,31 @@ return (
       </Grid>
 
       {/* Filter Box */}
-      <Grid item xs={12} sm={6} md={4}>
-        <Box
-          p={2}
-          bgcolor="background.paper"
-          borderRadius="10px"
-          sx={{
-            height: "auto",
-            boxShadow: "0 4px 8px rgba(0,0,0,0.3)",
-          }}
-        >
-          <Typography
-            variant="h4"
-            sx={{
-              color: "white",
-              backgroundColor: "#32348c",
-              padding: "10px",
-              borderRadius: "50px",
-              textAlign: "center",
-            }}
-          >
-            <b>FILTER</b>
-          </Typography>
-
+      <Grid item xs={12} sm={6} md={2}>
+    <Box
+      p={2}
+      bgcolor="background.paper"
+      borderRadius="10px"
+      sx={{
+        height: "auto",
+        boxShadow: "0 4px 8px rgba(0,0,0,0.3)",
+      }}
+    >
+      {/* Title properly aligned with Box */}
+      <Typography
+        variant="h4"
+        sx={{
+          color: "white",
+          backgroundColor: "#32348c",
+          padding: "10px 0", // Only vertical padding
+          borderRadius: "10px 10px 0 0", // Rounded only at the top
+          textAlign: "center",
+          width: "100%", // Ensures it spans full width
+          display: "block",
+        }}
+      >
+        <b>DATE</b>
+      </Typography>
           {/* Date Pickers */}
           <div style={{ marginTop: "20px" }}>
             <LocalizationProvider dateAdapter={AdapterDateFns} locale={enGB}>
@@ -918,7 +926,7 @@ return (
 
           <Button
             variant="contained"
-            color="primary"
+            color="success"
             onClick={filterDate}
             style={{ width: "100%", marginTop: "10px", borderRadius: "50px" }}
           >

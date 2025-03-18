@@ -36,11 +36,13 @@ export const Admin = () => {
   const fetchFyYears = async () => {
     try {
       const data = await getFyYearOptions();
-      setFyYears(data);
+      const filteredData = data.filter(fy => fy.fy_id); // Only include items where fy_id is true
+      setFyYears(filteredData);
     } catch (error) {
       console.error("Error fetching financial years:", error);
     }
   };
+  
 
   const showSnackbar = (message, severity) => {
     setSnackbar({ open: true, message, severity });

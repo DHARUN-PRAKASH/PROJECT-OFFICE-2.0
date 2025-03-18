@@ -9,6 +9,7 @@ import {
   Typography,
   Button, Chip
 } from "@mui/material";
+import { PDFDocument } from "pdf-lib";
 import {
   getFormsByVehicleID,
   getFormsByHeadCatName,
@@ -211,10 +212,10 @@ const Table = () => {
 
 
 
-  const handlePdfGeneration = (rowData) => {
+  const handlePdfGeneration = async (rowData) => {
     try {
       const doc = new jsPDF();
-
+  
       // Set title with background color and centered text
       doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
@@ -222,9 +223,10 @@ const Table = () => {
       doc.setFillColor(50, 52, 140);
       doc.rect(0, 0, 210, 15, "F"); // Header rectangle
       doc.text("Report", 105, 10, { align: "center" });
-
+  
       // Define field-value pairs with the required keys only
       const fields = [
+        ["Type",rowData.type || "N/A"],
         ["Head Category", rowData.headCategory || "N/A"],
         ["Sub Category", rowData.subCategory || "N/A"],
         ["Vehicle ID", rowData.vehicleId || "N/A"],
@@ -235,10 +237,10 @@ const Table = () => {
         ["Financial Year", rowData.fyYear || "N/A"],
         ["Month", rowData.month || "N/A"]
       ];
-
+  
       // Initial Y position for the content
       let yPosition = 25;
-
+  
       // Field-value table header
       doc.setFontSize(12);
       doc.setTextColor(255, 255, 255);
@@ -247,25 +249,55 @@ const Table = () => {
       doc.text("Field", 15, yPosition + 7);
       doc.text("Value", 110, yPosition + 7);
       yPosition += 12;
-
+  
       // Field-value table rows
       fields.forEach(([field, value], index) => {
         // Alternate row color for better readability
         const isEvenRow = index % 2 === 0;
         doc.setFillColor(isEvenRow ? 240 : 255); // Light gray for even rows
         doc.rect(10, yPosition, 190, 10, "F"); // Row background
-
+  
         // Set text styles
         doc.setFont("helvetica", "bold"); // Bold for field names
         doc.setTextColor(50, 50, 50);
         doc.text(field, 15, yPosition + 7); // Field text
-
+  
         doc.setFont("helvetica", "normal"); // Normal for values
         doc.text(value.toString(), 110, yPosition + 7); // Value text
-
+  
         yPosition += 10; // Increment Y position for the next row
       });
-       doc.output("dataurlnewwindow");
+  
+      // Convert jsPDF to Uint8Array
+      const generatedPdf = doc.output("arraybuffer");
+  
+      // Check if merged PDF exists
+      if (rowData.merged_pdf) {
+        const mergedPdfUrl = `${BASE_URL}/merged_pdf/${rowData.merged_pdf}`;
+        const response = await fetch(mergedPdfUrl);
+        if (!response.ok) throw new Error("Failed to fetch merged PDF");
+  
+        const mergedPdfData = await response.arrayBuffer();
+  
+        // Load both PDFs with pdf-lib
+        const pdfDoc = await PDFDocument.load(generatedPdf);
+        const mergedPdf = await PDFDocument.load(mergedPdfData);
+  
+        // Copy pages from merged PDF
+        const pages = await pdfDoc.copyPages(mergedPdf, mergedPdf.getPageIndices());
+        pages.forEach((page) => pdfDoc.addPage(page));
+  
+        // Create final merged PDF
+        const finalPdf = await pdfDoc.save();
+  
+        // Open in new tab
+        const pdfBlob = new Blob([finalPdf], { type: "application/pdf" });
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        window.open(pdfUrl, "_blank");
+      } else {
+        // Open the generated PDF without merging
+        doc.output("dataurlnewwindow");
+      }
     } catch (error) {
       console.error("Error generating PDF:", error);
     }
